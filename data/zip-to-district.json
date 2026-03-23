@@ -1,0 +1,63 @@
+{
+  "90210": {
+    "state": "CA",
+    "district": "33"
+  },
+  "10001": {
+    "state": "NY",
+    "district": "12"
+  },
+  "02134": {
+    "state": "MA",
+    "district": "07"
+  },
+  "60601": {
+    "state": "IL",
+    "district": "07"
+  },
+  "77001": {
+    "state": "TX",
+    "district": "18"
+  },
+  "98101": {
+    "state": "WA",
+    "district": "07"
+  },
+  "33101": {
+    "state": "FL",
+    "district": "27"
+  },
+  "80201": {
+    "state": "CO",
+    "district": "01"
+  },
+  "94101": {
+    "state": "CA",
+    "district": "11"
+  },
+  "20001": {
+    "state": "DC",
+    "district": null
+  },
+  "02115": {
+    "state": "MA",
+    "district": "07"
+  },
+  "10012": {
+    "state": "NY",
+    "district": "12"
+  },
+  "60611": {
+    "state": "IL",
+    "district": "05"
+  },
+  "77002": {
+    "state": "TX",
+    "district": "18"
+  },
+  "98102": {
+    "state": "WA",
+    "district": "07"
+  }
+}
+
