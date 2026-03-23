@@ -148,23 +148,23 @@ export default function ChamberFloor({ members }: ChamberFloorProps) {
     <div className="space-y-6">
       {/* Toggle Switch */}
       <div className="flex items-center justify-center">
-        <div className="inline-flex items-center gap-3 rounded-full border border-zinc-200 bg-zinc-50 p-1 dark:border-zinc-800 dark:bg-zinc-900/50">
+        <div className="inline-flex items-center rounded bg-[#EDEEEF] p-0.5">
           <button
             onClick={() => setSelectedChamber("House")}
-            className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${
+            className={`rounded px-5 py-2 text-sm font-semibold transition-all ${
               selectedChamber === "House"
-                ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                ? "bg-[#041534] text-white shadow-sm"
+                : "text-[#75777F] hover:text-[#191C1D]"
             }`}
           >
             House
           </button>
           <button
             onClick={() => setSelectedChamber("Senate")}
-            className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${
+            className={`rounded px-5 py-2 text-sm font-semibold transition-all ${
               selectedChamber === "Senate"
-                ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-800 dark:text-zinc-100"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                ? "bg-[#041534] text-white shadow-sm"
+                : "text-[#75777F] hover:text-[#191C1D]"
             }`}
           >
             Senate
@@ -173,27 +173,27 @@ export default function ChamberFloor({ members }: ChamberFloorProps) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-4 text-xs text-zinc-600 dark:text-zinc-400">
+      <div className="flex items-center justify-center gap-4 text-xs text-[#75777F]">
         <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded bg-blue-500" />
+          <div className="h-3.5 w-3.5 rounded" style={{ backgroundColor: "#1B2A4A" }} />
           <span>Democrat</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded bg-red-500" />
+          <div className="h-3.5 w-3.5 rounded" style={{ backgroundColor: "#8B2332" }} />
           <span>Republican</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded bg-zinc-400" />
+          <div className="h-3.5 w-3.5 rounded bg-[#75777F]" />
           <span>Other/Independent</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded border border-dashed border-zinc-300 bg-zinc-100/50 dark:border-zinc-700 dark:bg-zinc-800/30" />
+          <div className="h-3.5 w-3.5 rounded border border-dashed border-[#C5C6CF] bg-[#EDEEEF]" />
           <span>Vacant</span>
         </div>
       </div>
 
       {/* Chamber Floor Visualization */}
-      <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-6 dark:border-zinc-800 dark:bg-zinc-900/30">
+      <div className="rounded border border-[#C5C6CF] bg-white p-6 shadow-editorial">
         {selectedChamber === "Senate" ? (
           // Senate: Show 2 seats per state in a grid
           <div className="space-y-4">
@@ -290,14 +290,14 @@ function SenateSeat({
     partyLower.includes("democrat")
   ) {
     partyColor = "bg-blue-500";
-    backgroundColor = "#3b82f6"; // blue-500
+    backgroundColor = "#1B2A4A"; // navy - Democrat
   } else if (
     partyUpper === "R" || 
     partyUpper === "REP" ||
     partyLower.includes("republican")
   ) {
     partyColor = "bg-red-500";
-    backgroundColor = "#ef4444"; // red-500
+    backgroundColor = "#8B2332"; // deep red - Republican
   }
   
   if (process.env.NODE_ENV === "development") {
@@ -357,14 +357,14 @@ function HouseSeat({
     partyLower.includes("democrat")
   ) {
     partyColor = "bg-blue-500";
-    backgroundColor = "#3b82f6"; // blue-500
+    backgroundColor = "#1B2A4A"; // navy - Democrat
   } else if (
     partyUpper === "R" || 
     partyUpper === "REP" ||
     partyLower.includes("republican")
   ) {
     partyColor = "bg-red-500";
-    backgroundColor = "#ef4444"; // red-500
+    backgroundColor = "#8B2332"; // deep red - Republican
   }
   
   if (process.env.NODE_ENV === "development") {

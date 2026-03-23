@@ -40,31 +40,37 @@ export default function TopNav() {
   }, [openPalette]);
 
   return (
-    <nav className="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/90 backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-900/90">
+    <nav className="sticky top-0 z-40" style={{ backgroundColor: "#041534" }}>
       <div className="container-content mx-auto px-6">
-        <div className="flex h-16 items-center justify-between gap-6">
+        <div className="flex h-14 items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <Link
               href="/"
-              className="text-lg font-semibold tracking-tight text-zinc-900 no-underline transition-colors duration-200 hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300"
+              className="font-headline text-lg font-bold tracking-tight text-white no-underline transition-opacity duration-200 hover:opacity-80"
             >
-              Polititrack
+              PolitiTrack
+            </Link>
+            <Link
+              href="/compare"
+              className="hidden md:block text-sm font-medium text-white/70 no-underline transition-colors duration-200 hover:text-white"
+            >
+              Compare
             </Link>
             <Link
               href="/methodology"
-              className="hidden md:block text-sm font-medium text-zinc-600 no-underline transition-colors duration-200 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              className="hidden md:block text-sm font-medium text-white/70 no-underline transition-colors duration-200 hover:text-white"
             >
               Methodology
             </Link>
             <Link
               href="/status"
-              className="hidden md:block text-sm font-medium text-zinc-600 no-underline transition-colors duration-200 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              className="hidden md:block text-sm font-medium text-white/70 no-underline transition-colors duration-200 hover:text-white"
               suppressHydrationWarning
             >
               Status
             </Link>
           </div>
-          
+
           {/* Search Input */}
           <div className="hidden flex-1 max-w-md md:block">
             <div className="relative">
@@ -74,10 +80,10 @@ export default function TopNav() {
                 placeholder="Search politicians, bills... (Cmd+K)"
                 onFocus={openPalette}
                 readOnly
-                className="w-full cursor-pointer rounded-md border border-zinc-200 bg-zinc-50/50 px-4 py-2 pl-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-800 dark:bg-zinc-800/50 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-700 dark:focus:bg-zinc-900 dark:focus:ring-zinc-800"
+                className="w-full cursor-pointer rounded border border-white/20 bg-white/10 px-4 py-1.5 pl-10 text-sm text-white placeholder:text-white/50 focus:border-white/40 focus:bg-white/15 focus:outline-none"
               />
               <svg
-                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500"
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -97,7 +103,7 @@ export default function TopNav() {
             variant="ghost"
             size="sm"
             onClick={toggleReadingMode}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 text-white/70 hover:text-white hover:bg-white/10"
             aria-label={isEnabled ? "Disable reading mode" : "Enable reading mode"}
           >
             <svg
@@ -120,10 +126,10 @@ export default function TopNav() {
         </div>
 
         {/* Topic Chips */}
-        <div className="border-t border-zinc-200/80 px-6 py-3 dark:border-zinc-800/80">
+        <div className="border-t border-white/10 px-6 py-2.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mr-1">
-              Topic Lens
+            <span className="text-xs font-medium text-white/60 mr-1">
+              Topics
             </span>
             <InfoTip
               content="Topic Lens filters content by policy area. Select a topic to see relevant votes, statements, and timeline events highlighted across the site."
@@ -147,8 +153,8 @@ export default function TopNav() {
                 }}
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors duration-200 cursor-pointer ${
                   selectedTopic === topic
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                    ? "bg-white text-[#041534]"
+                    : "bg-white/10 text-white/80 hover:bg-white/20"
                 }`}
               >
                 {topic}
@@ -160,10 +166,10 @@ export default function TopNav() {
                   }}
                   className={`transition-colors duration-200 ${
                     isTopicSaved(topic)
-                      ? "text-yellow-500"
+                      ? "text-yellow-400"
                       : selectedTopic === topic
-                      ? "text-white/70 hover:text-white"
-                      : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+                      ? "text-[#041534]/50 hover:text-[#041534]/80"
+                      : "text-white/40 hover:text-white/70"
                   }`}
                   aria-label={isTopicSaved(topic) ? `Unsave ${topic}` : `Save ${topic}`}
                 >
@@ -189,7 +195,7 @@ export default function TopNav() {
                   clearTopic();
                   track("topic_cleared");
                 }}
-                className="inline-flex items-center gap-1 rounded-full bg-zinc-200 px-3 py-1 text-xs font-medium text-zinc-700 transition-colors duration-200 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-600"
+                className="inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white/80 transition-colors duration-200 hover:bg-white/30"
               >
                 <span>Clear</span>
                 <svg

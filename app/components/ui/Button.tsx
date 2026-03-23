@@ -19,15 +19,15 @@ export default function Button({
   };
 
   const baseStyles =
-    "inline-flex items-center justify-center rounded-md font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500";
-  
+    "inline-flex items-center justify-center rounded font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1B2A4A]";
+
   const variants = {
     primary:
-      "bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200",
+      "bg-[#041534] text-white hover:bg-[#1B2A4A]",
     secondary:
-      "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700",
+      "bg-[#EDEEEF] text-[#191C1D] hover:bg-[#E7E8E9]",
     ghost:
-      "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
+      "text-[#75777F] hover:bg-[#EDEEEF] hover:text-[#191C1D]",
   };
 
   return (
@@ -39,4 +39,3 @@ export default function Button({
     </button>
   );
 }
-

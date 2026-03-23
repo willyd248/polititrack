@@ -12,10 +12,10 @@ export default function Card({
   clickable = false,
 }: CardProps) {
   const baseStyles =
-    "rounded-lg border border-zinc-200 bg-white p-6 shadow-card transition-all duration-200 dark:border-zinc-800 dark:bg-zinc-900";
-  
+    "rounded bg-white border border-[#C5C6CF] p-6 shadow-editorial transition-all duration-200";
+
   const clickableStyles = clickable
-    ? "cursor-pointer hover:shadow-card-hover hover:border-zinc-300 dark:hover:border-zinc-700"
+    ? "cursor-pointer hover:shadow-editorial-hover hover:border-[#75777F]"
     : "";
 
   return (
@@ -24,4 +24,3 @@ export default function Card({
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useRef, ReactNode, Suspense } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, Suspense } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 
 interface TopicLensContextType {
@@ -17,61 +17,42 @@ function TopicLensSync({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const isUpdatingUrlRef = useRef(false);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(
+    () => searchParams.get("topic")
+  );
 
-  // Initialize from URL on mount
+  // Sync state from URL when searchParams change (e.g. browser back/forward)
   useEffect(() => {
     const topicFromUrl = searchParams.get("topic");
-    if (topicFromUrl) {
-      setSelectedTopic(topicFromUrl);
-    }
-    setIsInitialized(true);
-  }, []); // Only run on mount
+    setSelectedTopic(topicFromUrl);
+  }, [searchParams]);
 
-  // Sync URL when selectedTopic changes (after initialization)
-  // Preserves all existing query params (like receipt)
-  useEffect(() => {
-    if (!isInitialized || isUpdatingUrlRef.current) return;
-
-    // Read current params - using searchParams.toString() preserves all params
-    const currentTopic = searchParams.get("topic");
-    
-    // Only update URL if there's a mismatch between state and URL
-    if (selectedTopic && currentTopic !== selectedTopic) {
-      isUpdatingUrlRef.current = true;
-      // Preserve all existing params by copying current searchParams
+  const updateUrl = useCallback(
+    (topic: string | null) => {
       const params = new URLSearchParams(searchParams.toString());
-      params.set("topic", selectedTopic);
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-      // Reset flag after URL update completes
-      setTimeout(() => {
-        isUpdatingUrlRef.current = false;
-      }, 50);
-    } else if (!selectedTopic && currentTopic) {
-      isUpdatingUrlRef.current = true;
-      // Preserve all existing params except topic
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("topic");
+      if (topic) {
+        params.set("topic", topic);
+      } else {
+        params.delete("topic");
+      }
       const newUrl = params.toString()
         ? `${pathname}?${params.toString()}`
         : pathname;
       router.replace(newUrl, { scroll: false });
-      // Reset flag after URL update completes
-      setTimeout(() => {
-        isUpdatingUrlRef.current = false;
-      }, 50);
-    }
-  }, [selectedTopic, isInitialized, pathname, router]); // Don't include searchParams to avoid loops
+    },
+    [searchParams, pathname, router]
+  );
 
-  const setTopic = (topic: string) => {
-    setSelectedTopic(topic);
-  };
+  const setTopic = useCallback(
+    (topic: string) => {
+      updateUrl(topic);
+    },
+    [updateUrl]
+  );
 
-  const clearTopic = () => {
-    setSelectedTopic(null);
-  };
+  const clearTopic = useCallback(() => {
+    updateUrl(null);
+  }, [updateUrl]);
 
   return (
     <TopicLensContext.Provider value={{ selectedTopic, setTopic, clearTopic }}>
@@ -99,4 +80,3 @@ export function useTopicLens() {
   }
   return context;
 }
-

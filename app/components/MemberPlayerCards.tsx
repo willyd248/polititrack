@@ -11,80 +11,76 @@ interface MemberPlayerCardsProps {
   members: Member[];
 }
 
-// Calculate years in office (placeholder - will be calculated server-side later)
-function getYearsInOffice(member: Member): string {
-  // TODO: Calculate from term start dates in unitedstates dataset
-  // For now, return placeholder
+const PAGE_SIZE = 24;
+
+function formatYearsInOffice(member: Member): string {
+  if (member.yearsInOffice != null) {
+    return member.yearsInOffice < 1 ? "<1 yr" : `${member.yearsInOffice} yr${member.yearsInOffice !== 1 ? "s" : ""}`;
+  }
   return "—";
 }
 
-// Get party color class
-function getPartyColorClass(party: string | null | undefined): string {
-  if (!party) return "bg-zinc-400";
-  const partyUpper = party.toUpperCase().trim();
-  const partyLower = party.toLowerCase().trim();
-  
-  if (partyUpper === "D" || partyUpper === "DEM" || partyLower.includes("democrat")) {
-    return "bg-blue-500";
-  } else if (partyUpper === "R" || partyUpper === "REP" || partyLower.includes("republican")) {
-    return "bg-red-500";
-  }
-  return "bg-zinc-400";
+function getPartyLabel(party: string | null | undefined): string {
+  if (!party) return "—";
+  const p = party.toUpperCase().trim();
+  if (p === "D" || p === "DEM") return "Democrat";
+  if (p === "R" || p === "REP") return "Republican";
+  if (p === "I" || p === "IND") return "Independent";
+  return party;
 }
 
-// Get party border color
-function getPartyBorderColor(party: string | null | undefined): string {
-  if (!party) return "border-zinc-400";
-  const partyUpper = party.toUpperCase().trim();
-  const partyLower = party.toLowerCase().trim();
-  
-  if (partyUpper === "D" || partyUpper === "DEM" || partyLower.includes("democrat")) {
-    return "border-blue-600";
-  } else if (partyUpper === "R" || partyUpper === "REP" || partyLower.includes("republican")) {
-    return "border-red-600";
-  }
-  return "border-zinc-500";
+function getPartyAccentColor(party: string | null | undefined): string {
+  if (!party) return "#75777F";
+  const p = party.toUpperCase().trim();
+  if (p === "D" || p === "DEM") return "#1B2A4A";
+  if (p === "R" || p === "REP") return "#8B2332";
+  return "#75777F";
 }
 
 export default function MemberPlayerCards({ members }: MemberPlayerCardsProps) {
   const [selectedChamber, setSelectedChamber] = useState<"House" | "Senate">("House");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { addPolitician, removePolitician, isSelected } = useCompare();
 
-  // Filter members by selected chamber
   const chamberMembers = members.filter((m) => m.chamber === selectedChamber);
 
-  // Sort by state, then by district (for House) or name (for Senate)
   const sortedMembers = [...chamberMembers].sort((a, b) => {
-    if (a.state !== b.state) {
-      return a.state.localeCompare(b.state);
-    }
+    if (a.state !== b.state) return a.state.localeCompare(b.state);
     if (selectedChamber === "House" && a.district && b.district) {
       return parseInt(a.district, 10) - parseInt(b.district, 10);
     }
     return a.fullName.localeCompare(b.fullName);
   });
 
+  const visibleMembers = sortedMembers.slice(0, visibleCount);
+  const hasMore = visibleCount < sortedMembers.length;
+
+  const handleChamberChange = (chamber: "House" | "Senate") => {
+    setSelectedChamber(chamber);
+    setVisibleCount(PAGE_SIZE);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Toggle Switch - Vintage Style */}
+      {/* Chamber Toggle */}
       <div className="flex items-center justify-center">
-        <div className="inline-flex items-center gap-1 rounded border-2 border-zinc-900 bg-white p-1 dark:border-zinc-100 dark:bg-zinc-900">
+        <div className="inline-flex items-center rounded bg-[#EDEEEF] p-0.5">
           <button
-            onClick={() => setSelectedChamber("House")}
-            className={`rounded px-6 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
+            onClick={() => handleChamberChange("House")}
+            className={`rounded px-5 py-2 text-sm font-semibold transition-all ${
               selectedChamber === "House"
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                ? "bg-[#041534] text-white shadow-sm"
+                : "text-[#75777F] hover:text-[#191C1D]"
             }`}
           >
             House
           </button>
           <button
-            onClick={() => setSelectedChamber("Senate")}
-            className={`rounded px-6 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
+            onClick={() => handleChamberChange("Senate")}
+            className={`rounded px-5 py-2 text-sm font-semibold transition-all ${
               selectedChamber === "Senate"
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                ? "bg-[#041534] text-white shadow-sm"
+                : "text-[#75777F] hover:text-[#191C1D]"
             }`}
           >
             Senate
@@ -92,14 +88,12 @@ export default function MemberPlayerCards({ members }: MemberPlayerCardsProps) {
         </div>
       </div>
 
-      {/* Player Cards Grid - Vintage Blocky Design */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {sortedMembers.map((member) => {
+      {/* Member Cards Grid */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        {visibleMembers.map((member) => {
           const politician = memberToPolitician(member);
           const isSelectedMember = isSelected(politician.id);
-          const partyColorClass = getPartyColorClass(member.party);
-          const partyBorderColor = getPartyBorderColor(member.party);
-          const yearsInOffice = getYearsInOffice(member);
+          const accentColor = getPartyAccentColor(member.party);
 
           return (
             <Link
@@ -107,28 +101,25 @@ export default function MemberPlayerCards({ members }: MemberPlayerCardsProps) {
               href={`/politician/${member.bioguideId}`}
               className="group block"
             >
-              <div
-                className={`relative overflow-hidden rounded border-4 ${partyBorderColor} bg-white shadow-lg transition-all hover:scale-105 hover:shadow-xl dark:bg-zinc-900`}
-              >
-                {/* Header Bar with Party Color */}
-                <div className={`h-2 ${partyColorClass}`} />
+              <div className="relative overflow-hidden rounded bg-white border border-[#C5C6CF] shadow-editorial transition-all hover:shadow-editorial-hover hover:border-[#75777F]">
+                {/* Party accent bar */}
+                <div className="h-1" style={{ backgroundColor: accentColor }} />
 
-                {/* Card Content */}
                 <div className="p-4">
                   {/* Photo */}
                   <div className="mb-3 flex justify-center">
                     {member.imageUrl ? (
-                      <div className="relative h-24 w-24 overflow-hidden rounded border-2 border-zinc-900 dark:border-zinc-100">
+                      <div className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-[#C5C6CF]">
                         <Image
                           src={member.imageUrl}
                           alt={member.fullName}
                           fill
+                          sizes="80px"
                           className="object-cover"
-                          unoptimized
                         />
                       </div>
                     ) : (
-                      <div className="flex h-24 w-24 items-center justify-center rounded border-2 border-zinc-300 bg-zinc-100 text-xs font-bold uppercase text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-[#C5C6CF] bg-[#EDEEEF] text-sm font-bold text-[#75777F]">
                         {member.fullName
                           .split(" ")
                           .map((n) => n[0])
@@ -138,45 +129,33 @@ export default function MemberPlayerCards({ members }: MemberPlayerCardsProps) {
                     )}
                   </div>
 
-                  {/* Name - Bold, Blocky */}
-                  <h3 className="mb-2 text-center text-sm font-bold uppercase tracking-tight text-zinc-900 dark:text-zinc-100">
+                  {/* Name */}
+                  <h3 className="font-headline mb-1 text-center text-sm font-bold text-[#191C1D] leading-tight">
                     {member.fullName}
                   </h3>
 
-                  {/* Stats - Blocky Design */}
-                  <div className="space-y-1.5 border-t-2 border-zinc-900 pt-2 dark:border-zinc-100">
+                  {/* Party badge */}
+                  <p className="text-center text-xs font-medium mb-3" style={{ color: accentColor }}>
+                    {getPartyLabel(member.party)} &middot;{" "}
+                    {selectedChamber === "House"
+                      ? member.district
+                        ? `${member.state}-${member.district}`
+                        : member.state
+                      : member.state}
+                  </p>
+
+                  {/* Stats */}
+                  <div className="space-y-1 border-t border-[#C5C6CF] pt-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold uppercase text-zinc-600 dark:text-zinc-400">
-                        Party:
-                      </span>
-                      <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                        {member.party || "—"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold uppercase text-zinc-600 dark:text-zinc-400">
-                        {selectedChamber === "House" ? "District:" : "State:"}
-                      </span>
-                      <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                        {selectedChamber === "House"
-                          ? member.district
-                            ? `${member.state}-${member.district}`
-                            : member.state
-                          : member.state}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold uppercase text-zinc-600 dark:text-zinc-400">
-                        Years:
-                      </span>
-                      <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                        {yearsInOffice}
+                      <span className="stat-label">In Office</span>
+                      <span className="font-semibold text-[#191C1D]">
+                        {formatYearsInOffice(member)}
                       </span>
                     </div>
                   </div>
 
                   {/* Compare Button */}
-                  <div className="mt-3 pt-2 border-t border-zinc-300 dark:border-zinc-700">
+                  <div className="mt-3">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -187,10 +166,10 @@ export default function MemberPlayerCards({ members }: MemberPlayerCardsProps) {
                           addPolitician(politician);
                         }
                       }}
-                      className={`w-full rounded border-2 border-zinc-900 px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition-all ${
+                      className={`w-full rounded px-3 py-1.5 text-xs font-semibold transition-all ${
                         isSelectedMember
-                          ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                          : "bg-white text-zinc-900 hover:bg-zinc-100 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                          ? "bg-[#041534] text-white"
+                          : "border border-[#C5C6CF] bg-white text-[#191C1D] hover:bg-[#EDEEEF]"
                       }`}
                     >
                       {isSelectedMember ? "Remove" : "Compare"}
@@ -203,9 +182,26 @@ export default function MemberPlayerCards({ members }: MemberPlayerCardsProps) {
         })}
       </div>
 
+      {/* Pagination */}
+      {sortedMembers.length > 0 && (
+        <div className="flex flex-col items-center gap-3">
+          <p className="stat-label">
+            Showing {Math.min(visibleCount, sortedMembers.length)} of {sortedMembers.length}
+          </p>
+          {hasMore && (
+            <button
+              onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+              className="rounded bg-[#041534] px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1B2A4A]"
+            >
+              Load More
+            </button>
+          )}
+        </div>
+      )}
+
       {sortedMembers.length === 0 && (
-        <div className="rounded-lg border-4 border-zinc-900 bg-white p-8 text-center dark:border-zinc-100 dark:bg-zinc-900">
-          <p className="text-sm font-bold uppercase text-zinc-600 dark:text-zinc-400">
+        <div className="card p-8 text-center">
+          <p className="text-sm font-medium text-[#75777F]">
             No {selectedChamber} members found
           </p>
         </div>
@@ -213,4 +209,3 @@ export default function MemberPlayerCards({ members }: MemberPlayerCardsProps) {
     </div>
   );
 }
-

@@ -2,6 +2,7 @@ import { fetchBills } from "../lib/mappers/congressToBill";
 import { fetchMembers } from "../lib/congressMembers";
 import { bills as mockBills } from "../data/bills";
 import { politicians as mockPoliticians } from "../data/politicians";
+import { getYearsInOffice } from "../lib/yearsInOffice";
 import HomeClient from "./page-client";
 
 /**
@@ -32,8 +33,14 @@ export default async function Home() {
   try {
     const realMembers = await fetchMembers(118); // 118th Congress
     if (realMembers.length >= 5) {
-      // Use all members for chamber floor visualization
-      members = realMembers;
+      // Enrich members with years in office data
+      const enrichedMembers = await Promise.all(
+        realMembers.map(async (member) => {
+          const years = await getYearsInOffice(member.bioguideId);
+          return { ...member, yearsInOffice: years };
+        })
+      );
+      members = enrichedMembers;
       useMockMembers = false;
     } else {
       // Got some data but not enough - mark as unavailable

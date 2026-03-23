@@ -7,6 +7,7 @@ import { useCommandPalette } from "../store/command-palette-store";
 import { politicians } from "../../data/politicians";
 import { bills } from "../../data/bills";
 import Chip from "./ui/Chip";
+import { track } from "../../lib/analytics";
 
 interface SearchResult {
   id: string;
@@ -166,6 +167,7 @@ export default function CommandPalette() {
   }, [selectedIndex]);
 
   const handleSelect = (result: SearchResult) => {
+    track("search_select", { query, result_type: result.type, result_id: result.id });
     router.push(result.url);
     closePalette();
     setQuery("");

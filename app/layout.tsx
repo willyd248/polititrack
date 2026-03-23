@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Epilogue, Public_Sans } from "next/font/google";
 import "./globals.css";
 import { ReceiptsProvider } from "./store/receipts-store";
 import { ReadingModeProvider } from "./store/reading-mode-store";
@@ -12,15 +12,18 @@ import TopNav from "./components/TopNav";
 import ReceiptsDrawer from "./components/ReceiptsDrawer";
 import CommandPalette from "./components/CommandPalette";
 import ReadingModeWrapper from "./components/ReadingModeWrapper";
+import { Analytics } from "@vercel/analytics/react";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const epilogue = Epilogue({
+  variable: "--font-epilogue",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const publicSans = Public_Sans({
+  variable: "--font-public-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -63,7 +66,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-50 dark:bg-zinc-950`}
+        className={`${epilogue.variable} ${publicSans.variable} antialiased`}
+        style={{ backgroundColor: "#F8F9FA" }}
       >
         <ReadingModeProvider>
           <TopicLensProvider>
@@ -86,6 +90,7 @@ export default function RootLayout({
             </CommandPaletteProvider>
           </TopicLensProvider>
         </ReadingModeProvider>
+        <Analytics />
       </body>
     </html>
   );

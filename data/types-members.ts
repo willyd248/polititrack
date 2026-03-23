@@ -18,5 +18,6 @@ export interface Member {
   fecCandidateId: string | null; // FEC candidate ID for campaign finance lookups
   lisId: string | null; // LIS ID for Senate roll call vote lookups (e.g., "S148")
   officialWebsite?: string | null; // Official website URL from Congress.gov
+  yearsInOffice?: number | null; // Computed server-side from term start dates
 }
 
