@@ -216,12 +216,18 @@ export async function mapCongressMemberToMember(
   
   // Infer chamber if not provided by API
   // House members have districts, Senators typically don't
+  // Territory delegates (AS, DC, GU, MP, PR, VI) are always House, never Senate
+  const TERRITORY_CODES = ["AS", "DC", "GU", "MP", "PR", "VI"];
+  const isTerritory = TERRITORY_CODES.includes(congressMember.state?.toUpperCase());
+
   let chamber: "House" | "Senate" = congressMember.chamber || "Senate";
   if (!congressMember.chamber) {
     if (congressMember.district !== undefined && congressMember.district !== null) {
       chamber = "House";
+    } else if (isTerritory) {
+      chamber = "House"; // Territory delegates/resident commissioners are House members
     } else {
-      chamber = "Senate"; // Default to Senate if no district
+      chamber = "Senate"; // Default to Senate if no district and not a territory
     }
   }
   
@@ -229,8 +235,12 @@ export async function mapCongressMemberToMember(
   let district: string | null = null;
   if (congressMember.district !== undefined && congressMember.district !== null) {
     district = String(congressMember.district);
+    // At-large districts (0, 00) → null (display as state-only)
+    if (district === "0" || district === "00") {
+      district = null;
+    }
     // Format district with leading zero if needed (e.g., "5" -> "05")
-    if (chamber === "House" && district.length === 1) {
+    if (district && chamber === "House" && district.length === 1) {
       district = `0${district}`;
     }
   }
