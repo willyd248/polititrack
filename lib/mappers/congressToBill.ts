@@ -8,9 +8,12 @@ import { TimelineEvent, Source } from "../../data/types";
 import { Bill, BillSponsor } from "../../data/bills";
 import { inferTopicFromText } from "../topicTagger";
 
-// Congress.gov API response types (partial, based on actual API structure)
+// Congress.gov API response types
+// Note: The detail endpoint returns actions/summaries/cosponsors as {count, url} objects.
+// The list endpoint returns bills with latestAction inline.
+// We handle both structures gracefully.
 interface CongressBill {
-  number: string;
+  number: string | number;
   type: string; // "HR", "S", etc.
   congress: number;
   title: string;
@@ -19,19 +22,23 @@ interface CongressBill {
     actionDate: string;
   };
   updateDate?: string;
+  // Detail endpoint: {count, url} object; not an inline text
   summary?: {
     text: string;
   };
+  // Detail endpoint returns {count, url}; list endpoint omits this
+  // We fetch actions separately if needed, but for now use latestAction
   actions?: Array<{
     text: string;
     actionDate: string;
     type?: string;
-  }>;
+  }> | { count: number; url: string };
   url?: string;
   textVersions?: Array<{
     url: string;
     type: string;
-  }>;
+  }> | { count: number; url: string };
+  // Detail endpoint uses sponsors[] (array), list endpoint omits
   sponsor?: {
     bioguideId: string;
     firstName?: string;
@@ -40,6 +47,15 @@ interface CongressBill {
     party?: string;
     state?: string;
   };
+  sponsors?: Array<{
+    bioguideId: string;
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    party?: string;
+    state?: string;
+    district?: number;
+  }>;
   cosponsors?: Array<{
     bioguideId: string;
     firstName?: string;
@@ -48,7 +64,9 @@ interface CongressBill {
     party?: string;
     state?: string;
     cosponsorDate?: string;
-  }>;
+  }> | { count: number; url: string };
+  policyArea?: { name: string };
+  introducedDate?: string;
 }
 
 interface CongressBillsResponse {
@@ -112,8 +130,9 @@ function mapStatus(bill: CongressBill): Bill["status"] {
 function mapTimelineEvents(bill: CongressBill, congress: number, type: string, number: string): TimelineEvent[] {
   const events: TimelineEvent[] = [];
   
-  if (bill.actions && bill.actions.length > 0) {
-    bill.actions.forEach((action, index) => {
+  const actionsArray = Array.isArray(bill.actions) ? bill.actions : [];
+  if (actionsArray.length > 0) {
+    actionsArray.forEach((action, index) => {
       const eventId = `timeline-${index}`;
       const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${type.toLowerCase()}-bill/${number}`;
       
@@ -189,8 +208,8 @@ function createSummarySources(
     });
   }
   
-  // Add text version if available
-  if (bill.textVersions && bill.textVersions.length > 0) {
+  // Add text version if available (detail endpoint returns {count, url}, skip in that case)
+  if (Array.isArray(bill.textVersions) && bill.textVersions.length > 0) {
     const textVersion = bill.textVersions[0];
     sources.push({
       title: `Bill Text (${textVersion.type})`,
@@ -207,7 +226,7 @@ function createSummarySources(
 /**
  * Map Congress.gov sponsor to BillSponsor
  */
-function mapSponsor(sponsor: CongressBill["sponsor"]): BillSponsor | undefined {
+function mapSponsor(sponsor?: { bioguideId: string; firstName?: string; lastName?: string; fullName?: string; party?: string; state?: string }): BillSponsor | undefined {
   if (!sponsor || !sponsor.bioguideId) return undefined;
   
   return {
@@ -221,7 +240,7 @@ function mapSponsor(sponsor: CongressBill["sponsor"]): BillSponsor | undefined {
 /**
  * Map Congress.gov cosponsors to BillSponsor array (limit 10)
  */
-function mapCosponsors(cosponsors?: CongressBill["cosponsors"]): BillSponsor[] {
+function mapCosponsors(cosponsors?: Array<{ bioguideId: string; firstName?: string; lastName?: string; fullName?: string; party?: string; state?: string; cosponsorDate?: string }>): BillSponsor[] {
   if (!cosponsors || cosponsors.length === 0) return [];
   
   return cosponsors
@@ -273,7 +292,7 @@ function createSponsorSources(
 export function mapCongressBillToBill(congressBill: CongressBill): Bill {
   const congress = congressBill.congress;
   const type = congressBill.type;
-  const number = congressBill.number;
+  const number = String(congressBill.number);
   const id = formatBillId(congress, type, number);
   
   // Extract official summary text from Congress.gov
@@ -301,9 +320,13 @@ export function mapCongressBillToBill(congressBill: CongressBill): Bill {
   // Create summary sources - include Congress.gov summary endpoint if summary exists
   const summarySources = createSummarySources(congressBill, congress, type, number, summaryText);
   
-  // Map sponsor and cosponsors
-  const sponsor = mapSponsor(congressBill.sponsor);
-  const cosponsors = mapCosponsors(congressBill.cosponsors);
+  // Map sponsor — detail endpoint uses sponsors[] array, list uses sponsor
+  const sponsorData = congressBill.sponsor || (congressBill.sponsors && congressBill.sponsors[0]) || undefined;
+  const sponsor = mapSponsor(sponsorData);
+  // Cosponsors — detail endpoint returns {count, url}, list may have inline array
+  const cosponsors = Array.isArray(congressBill.cosponsors)
+    ? mapCosponsors(congressBill.cosponsors)
+    : [];
   
   // Create sponsor sources if sponsor/cosponsors exist
   const sponsorSources = (sponsor || cosponsors.length > 0)
