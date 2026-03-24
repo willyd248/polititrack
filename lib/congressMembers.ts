@@ -97,19 +97,12 @@ export async function fetchMembers(congress?: number): Promise<Member[]> {
 
     console.log(`[fetchMembers] Fetched ${allMembers.length} members for ${congressNumber}th Congress`);
     
-    // Map all members (now async)
+    // Map all members — skip expensive FEC/LIS lookups in bulk fetch
+    // Individual profile pages will do full lookups
     const mappedMembers = await Promise.all(
-      allMembers.map(async (member) => {
-        // Log party info for first few members in development
-        if (process.env.NODE_ENV === "development" && allMembers.indexOf(member) < 3) {
-          console.log(`[fetchMembers] Sample member ${member.bioguideId}:`, {
-            party: member.party,
-            partyHistory: (member as any).partyHistory,
-            allKeys: Object.keys(member),
-          });
-        }
-        return mapCongressMemberToMember(member);
-      })
+      allMembers.map((member) =>
+        mapCongressMemberToMember(member, { skipFecLookup: true, skipLisLookup: true })
+      )
     );
     
     return mappedMembers;

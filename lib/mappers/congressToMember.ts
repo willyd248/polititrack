@@ -200,7 +200,10 @@ function extractNameFields(congressMember: CongressMember): {
 /**
  * Map Congress.gov member to Polititrack Member type
  */
-export async function mapCongressMemberToMember(congressMember: CongressMember): Promise<Member> {
+export async function mapCongressMemberToMember(
+  congressMember: CongressMember,
+  options?: { skipFecLookup?: boolean; skipLisLookup?: boolean }
+): Promise<Member> {
   // Extract name fields with defensive parsing
   const { firstName, lastName, fullName } = extractNameFields(congressMember);
   
@@ -237,32 +240,23 @@ export async function mapCongressMemberToMember(congressMember: CongressMember):
   // (d) Fallback null
   let fecCandidateId = getFecCandidateIdForBioguide(congressMember.bioguideId);
   
-  if (!fecCandidateId) {
+  if (!fecCandidateId && !options?.skipFecLookup) {
     // Try automatic lookup from dataset
     fecCandidateId = await getFecCandidateIdFromDataset(congressMember.bioguideId);
   }
-  
-  if (!fecCandidateId) {
-    // Try automatic lookup via OpenFEC API search
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[mapCongressMemberToMember] Attempting auto FEC lookup for ${congressMember.bioguideId}:`, {
-        fullName: safeFullName,
-        state: congressMember.state,
-        chamber: congressMember.chamber,
-      });
-    }
+
+  if (!fecCandidateId && !options?.skipFecLookup) {
+    // Try automatic lookup via OpenFEC API search (expensive — skip in bulk)
     fecCandidateId = await autoLookupFecCandidateId(
       safeFullName,
       congressMember.state,
       chamber
     );
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[mapCongressMemberToMember] Auto FEC lookup result for ${congressMember.bioguideId}:`, fecCandidateId || "Not found");
-    }
   }
-  
+
   // Resolve LIS ID for Senate members (for roll call vote lookups)
-  const lisId = chamber === "Senate"
+  // Skip in bulk fetches to avoid 100+ dataset fetches
+  const lisId = (chamber === "Senate" && !options?.skipLisLookup)
     ? await getLisIdFromDataset(congressMember.bioguideId)
     : null;
   
