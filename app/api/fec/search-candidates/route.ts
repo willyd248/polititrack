@@ -8,6 +8,8 @@
 import { searchFecCandidates } from "../../../../lib/fecCandidates";
 import { NextRequest, NextResponse } from "next/server";
 
+export const maxDuration = 15;
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -32,8 +34,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error searching FEC candidates:", error);
     return NextResponse.json(
-      { error: "Failed to search candidates" },
-      { status: 500 }
+      { error: "Failed to search candidates", results: [] },
+      { status: 200 } // Return 200 with empty results so client degrades gracefully
     );
   }
 }

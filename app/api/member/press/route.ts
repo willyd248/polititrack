@@ -11,6 +11,8 @@ import { fetchMemberByBioguideId } from "../../../../lib/congressMembers";
 import { Statement } from "../../../../data/types";
 import { inferTopicFromText } from "../../../../lib/topicTagger";
 
+export const maxDuration = 15;
+
 /** Parsed RSS item from a member's press feed */
 interface RssItem {
   title: string;
@@ -438,7 +440,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching member statements:", error);
     return NextResponse.json(
       { error: "Failed to fetch statements", statements: [] },
-      { status: 500 }
+      { status: 200 } // Return 200 so client doesn't show hard error
     );
   }
 }

@@ -23,10 +23,13 @@ async function checkCongressApi(): Promise<SourceCheckResult> {
   }
   const start = Date.now();
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     const res = await fetch(
       `https://api.congress.gov/v3/member?api_key=${apiKey}&format=json&limit=1&currentMember=true`,
-      { next: { revalidate: 300 } }
+      { next: { revalidate: 300 }, signal: controller.signal }
     );
+    clearTimeout(timeoutId);
     const elapsed = Date.now() - start;
     if (!res.ok) {
       const body = await res.text();
@@ -47,10 +50,13 @@ async function checkFecApi(): Promise<SourceCheckResult> {
   }
   const start = Date.now();
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     const res = await fetch(
       `https://api.open.fec.gov/v1/candidates/?api_key=${apiKey}&per_page=1`,
-      { next: { revalidate: 300 } }
+      { next: { revalidate: 300 }, signal: controller.signal }
     );
+    clearTimeout(timeoutId);
     const elapsed = Date.now() - start;
     if (!res.ok) {
       const body = await res.text();

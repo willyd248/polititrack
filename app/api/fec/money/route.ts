@@ -7,6 +7,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchMoneyForCandidate } from "../../../../lib/mappers/fecToMoney";
 
+export const maxDuration = 15;
+
 export async function GET(request: NextRequest) {
   const fecId = request.nextUrl.searchParams.get("fecId");
 
