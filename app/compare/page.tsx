@@ -1,25 +1,45 @@
 "use client";
 
-import { useEffect } from "react";
 import { useCompare } from "../store/compare-store";
 import Card from "../components/ui/Card";
 import Button from "../components/ui/Button";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function ComparePage() {
   const { selected, clearCompare } = useCompare();
-  const router = useRouter();
 
-  // Redirect if not 2 politicians selected
-  useEffect(() => {
-    if (selected.length !== 2) {
-      router.push("/");
-    }
-  }, [selected.length, router]);
-
-  if (selected.length !== 2) {
-    return null;
+  // Show empty state if not 2 politicians selected
+  if (selected.length < 2) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <svg
+          className="h-16 w-16 text-zinc-300 dark:text-zinc-600 mb-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+          />
+        </svg>
+        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
+          Compare Politicians
+        </h1>
+        <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-md mb-6">
+          {selected.length === 0
+            ? "Select two politicians to compare them side-by-side. Use the Compare button on any politician card from the homepage."
+            : `You've selected 1 politician. Pick one more to start comparing.`}
+        </p>
+        <Link href="/">
+          <Button variant="primary" size="md">
+            Browse Politicians
+          </Button>
+        </Link>
+      </div>
+    );
   }
 
   const [politician1, politician2] = selected;
