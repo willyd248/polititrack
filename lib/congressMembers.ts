@@ -122,7 +122,8 @@ export async function fetchMembers(congress?: number): Promise<Member[]> {
  */
 export async function fetchMemberByBioguideId(
   bioguideId: string,
-  congress?: number
+  congress?: number,
+  options?: { skipFecLookup?: boolean; skipLisLookup?: boolean }
 ): Promise<Member | null> {
   try {
     const { congressFetch } = await import("./congress");
@@ -175,7 +176,7 @@ export async function fetchMemberByBioguideId(
       }
     }
     
-    return await mapCongressMemberToMember(response.member);
+    return await mapCongressMemberToMember(response.member, options);
   } catch (error) {
     console.error(`Failed to fetch member ${bioguideId}:`, error);
     return null;

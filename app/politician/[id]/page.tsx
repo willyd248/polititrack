@@ -10,6 +10,7 @@ import { politicians as mockPoliticians } from "../../../data/politicians";
 import { memberToPolitician } from "../../../lib/mappers/memberToPolitician";
 import { fetchSponsoredBills, fetchCosponsoredBills } from "../../../lib/congressSponsorship";
 import { fetchMemberVotes } from "../../../lib/congressVotes";
+import { getFecCandidateIdForBioguide } from "../../../data/fec-mapping";
 import { Vote } from "../../../data/types";
 import { LegislativeActivityItem } from "../../../lib/congressSponsorship";
 import { notFound } from "next/navigation";
@@ -49,10 +50,14 @@ export default async function PoliticianPage({
     );
   }
 
-  // Fetch member from Congress.gov (this is fast — ~1s)
+  // Fetch member from Congress.gov — skip FEC/LIS lookups so this stays fast (~1-2s)
+  // FEC data is loaded client-side via /api/fec/money
   let member;
   try {
-    member = await withTimeout(fetchMemberByBioguideId(id), 10000);
+    member = await withTimeout(
+      fetchMemberByBioguideId(id, undefined, { skipFecLookup: true, skipLisLookup: true }),
+      10000
+    );
   } catch {
     member = null;
   }
@@ -91,6 +96,10 @@ export default async function PoliticianPage({
   const memberVotes: Vote[] =
     votesResult.status === "fulfilled" && votesResult.value ? votesResult.value : [];
 
+  // Get FEC ID from manual mapping (fast — no API call)
+  // Falls back to member.fecCandidateId if mapper already resolved it
+  const fecCandidateId = getFecCandidateIdForBioguide(id) || member.fecCandidateId || null;
+
   // moneyData is null here — loaded client-side via /api/fec/money
   return (
     <PoliticianPageClient
@@ -101,7 +110,7 @@ export default async function PoliticianPage({
       sponsoredBills={sponsoredBills}
       cosponsoredBills={cosponsoredBills}
       memberVotes={memberVotes}
-      fecCandidateId={member.fecCandidateId}
+      fecCandidateId={fecCandidateId}
     />
   );
 }
