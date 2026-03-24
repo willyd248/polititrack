@@ -368,7 +368,7 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
   try {
     const { congressFetch } = await import("../congress");
     const response = await congressFetch<CongressBillResponse>(
-      `/bill/${congress}/${type}/${number}`,
+      `/bill/${congress}/${type.toLowerCase()}/${number}`,
       { revalidate: 1800 } // 30 minutes
     );
     

@@ -24,6 +24,7 @@ interface CongressMember {
   state: string;
   district?: string | number;
   party?: string;
+  partyName?: string; // Congress.gov list endpoint returns this (e.g., "Democratic")
   partyHistory?: Array<{ partyName: string; startDate?: string; endDate?: string }>;
   imageUrl?: string;
   officialWebsite?: string;

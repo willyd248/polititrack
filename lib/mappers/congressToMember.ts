@@ -29,9 +29,11 @@ interface CongressMember {
   chamber?: "House" | "Senate"; // May be undefined - we'll infer from district
   state: string;
   district?: string | number;
-  party?: string; // May be undefined - check partyHistory instead
+  party?: string; // May be undefined - check partyName or partyHistory instead
+  partyName?: string; // Congress.gov API returns this in list endpoint (e.g., "Democratic", "Republican")
   partyHistory?: Array<{ partyName: string; startDate?: string; endDate?: string }>; // Party history from API
   imageUrl?: string;
+  depiction?: { imageUrl?: string; attribution?: string }; // Congress.gov list endpoint format
   officialWebsite?: string; // Official website URL if available
   // Note: fecCandidateId is NOT used from Congress.gov API response
   // It comes from our explicit mapping table instead
@@ -283,9 +285,9 @@ export async function mapCongressMemberToMember(
     }
   }
   
-  // Try Congress.gov API party field
-  if (!party && congressMember.party) {
-    party = congressMember.party;
+  // Try Congress.gov API party fields (partyName from list, party from detail)
+  if (!party && (congressMember.partyName || congressMember.party)) {
+    party = congressMember.partyName || congressMember.party || "";
   }
   
   // Try partyHistory if party field is empty
@@ -342,7 +344,7 @@ export async function mapCongressMemberToMember(
     state: congressMember.state,
     district,
     party: party || "N/A",
-    imageUrl: congressMember.imageUrl || null,
+    imageUrl: congressMember.imageUrl || congressMember.depiction?.imageUrl || null,
     fecCandidateId: fecCandidateId || null,
     lisId: lisId || null,
     officialWebsite: congressMember.officialWebsite || null,
