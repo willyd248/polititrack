@@ -120,7 +120,7 @@ export const PARTY_BY_BIOGUIDE: Record<string, string> = {
   
   // Nevada
   "C001113": "D", // Catherine Cortez Masto
-  "R000575": "D", // Jacky Rosen
+  "R000608": "D", // Jacky Rosen
   
   // New Hampshire
   "H001046": "D", // Margaret Wood Hassan
