@@ -101,7 +101,7 @@ function createBillSources(bill: CongressBill): Source[] {
  */
 export async function fetchSponsoredBills(
   bioguideId: string,
-  congress: number = 118,
+  congress: number = 119,
   limit: number = 10
 ): Promise<LegislativeActivityItem[]> {
   try {
@@ -184,7 +184,7 @@ export async function fetchSponsoredBills(
  */
 export async function fetchCosponsoredBills(
   bioguideId: string,
-  congress: number = 118,
+  congress: number = 119,
   limit: number = 10
 ): Promise<LegislativeActivityItem[]> {
   try {

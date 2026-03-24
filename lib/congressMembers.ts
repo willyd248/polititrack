@@ -52,42 +52,50 @@ interface CongressMemberResponse {
 export async function fetchMembers(congress?: number): Promise<Member[]> {
   try {
     const { congressFetch } = await import("./congress");
-    const congressNumber = congress || 118; // Default to 118th Congress (current as of 2024)
+    const congressNumber = congress || 119; // 119th Congress (2025-2027)
     
-    const response = await congressFetch<CongressMembersResponse>(
-      `/member`,
-      {
-        params: {
-          congress: congressNumber,
-          limit: 100, // Congress.gov default limit
-        },
-        revalidate: 21600, // 6 hours cache
+    // Fetch all members with pagination (API max is 250 per page)
+    const PAGE_SIZE = 250;
+    let allMembers: CongressMember[] = [];
+    let offset = 0;
+    let totalCount = Infinity;
+
+    while (offset < totalCount) {
+      const response = await congressFetch<CongressMembersResponse>(
+        `/member`,
+        {
+          params: {
+            congress: congressNumber,
+            currentMember: true,
+            limit: PAGE_SIZE,
+            offset,
+          },
+          revalidate: 21600, // 6 hours cache
+        }
+      );
+
+      if (!response.members || response.members.length === 0) break;
+
+      allMembers = allMembers.concat(response.members);
+
+      // Update total from pagination metadata
+      if (response.pagination?.count) {
+        totalCount = response.pagination.count;
+      } else {
+        break; // No pagination info, stop
       }
-    );
-    
-    // Log raw response structure for debugging party data
-    if (process.env.NODE_ENV === "development" && response.members && response.members.length > 0) {
-      const sampleMember = response.members[0];
-      console.log(`[fetchMembers] Sample member structure:`, {
-        bioguideId: sampleMember.bioguideId,
-        hasParty: !!sampleMember.party,
-        party: sampleMember.party,
-        hasPartyHistory: !!sampleMember.partyHistory,
-        partyHistoryLength: sampleMember.partyHistory?.length || 0,
-        allKeys: Object.keys(sampleMember),
-      });
+
+      offset += PAGE_SIZE;
+
+      // Safety: don't fetch more than 3 pages (750 members max)
+      if (offset >= PAGE_SIZE * 3) break;
     }
-    
-    if (!response.members || response.members.length === 0) {
+
+    if (allMembers.length === 0) {
       return [];
     }
-    
-    // Handle pagination if needed
-    let allMembers = [...response.members];
-    
-    // If there's a next page, fetch it (simple pagination - can be extended)
-    // Note: Congress.gov pagination uses offset/limit, but for simplicity
-    // we'll just return the first page. Full pagination can be added later.
+
+    console.log(`[fetchMembers] Fetched ${allMembers.length} members for ${congressNumber}th Congress`);
     
     // Map all members (now async)
     const mappedMembers = await Promise.all(
@@ -124,7 +132,7 @@ export async function fetchMemberByBioguideId(
 ): Promise<Member | null> {
   try {
     const { congressFetch } = await import("./congress");
-    const congressNumber = congress || 118;
+    const congressNumber = congress || 119;
     
     const response = await congressFetch<CongressMemberResponse>(
       `/member/${bioguideId}`,
@@ -193,7 +201,7 @@ export async function fetchMembersByState(
 ): Promise<Member[]> {
   try {
     const { congressFetch } = await import("./congress");
-    const congressNumber = congress || 118;
+    const congressNumber = congress || 119;
     
     const response = await congressFetch<CongressMembersResponse>(
       `/member`,

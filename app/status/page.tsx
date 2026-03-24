@@ -1,161 +1,159 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Card from "../components/ui/Card";
-import { getSourceStatuses, isSourceDegraded } from "../../lib/dataHealth";
 
 export const metadata: Metadata = {
   title: "Status",
-  description: "Polititrack system status and version information.",
+  description: "Polititrack system status and data source health.",
 };
 
-export default async function StatusPage() {
-  const buildTime = process.env.NEXT_PUBLIC_BUILD_TIME || "Not available";
-  
-  // Get health data directly from data health system
-  let healthData = null;
-  try {
-    const statuses = getSourceStatuses();
-    healthData = {
-      sources: statuses.map((status) => {
-        const degraded = isSourceDegraded(status);
-        return {
-          name: status.source === "congress" ? "Congress.gov" : "OpenFEC",
-          status: status.ok ? "OK" : degraded ? "Degraded" : "Down",
-          lastSuccess: status.lastSuccess
-            ? new Date(status.lastSuccess).toISOString()
-            : null,
-          lastError: status.lastError || null,
-          lastErrorTime: status.lastErrorTime
-            ? new Date(status.lastErrorTime).toISOString()
-            : null,
-          lastErrorStatusCode: status.lastErrorStatusCode || null,
-          lastErrorUrl: status.lastErrorUrl || null,
-        };
-      }),
-    };
-  } catch (error) {
-    console.warn("Failed to get health data:", error);
+export const revalidate = 300; // Re-check every 5 minutes
+
+interface SourceCheckResult {
+  name: string;
+  status: "OK" | "Down" | "Error";
+  message: string;
+  responseTimeMs: number;
+}
+
+async function checkCongressApi(): Promise<SourceCheckResult> {
+  const apiKey = process.env.CONGRESS_API_KEY;
+  if (!apiKey) {
+    return { name: "Congress.gov", status: "Down", message: "API key not configured", responseTimeMs: 0 };
   }
+  const start = Date.now();
+  try {
+    const res = await fetch(
+      `https://api.congress.gov/v3/member?api_key=${apiKey}&format=json&limit=1&currentMember=true`,
+      { next: { revalidate: 300 } }
+    );
+    const elapsed = Date.now() - start;
+    if (!res.ok) {
+      const body = await res.text();
+      return { name: "Congress.gov", status: "Down", message: `HTTP ${res.status}: ${body.slice(0, 100)}`, responseTimeMs: elapsed };
+    }
+    const data = await res.json();
+    const count = data.pagination?.count || data.members?.length || 0;
+    return { name: "Congress.gov", status: "OK", message: `${count} current members available`, responseTimeMs: elapsed };
+  } catch (err) {
+    return { name: "Congress.gov", status: "Error", message: String(err), responseTimeMs: Date.now() - start };
+  }
+}
+
+async function checkFecApi(): Promise<SourceCheckResult> {
+  const apiKey = process.env.FEC_API_KEY;
+  if (!apiKey) {
+    return { name: "OpenFEC", status: "Down", message: "API key not configured", responseTimeMs: 0 };
+  }
+  const start = Date.now();
+  try {
+    const res = await fetch(
+      `https://api.open.fec.gov/v1/candidates/?api_key=${apiKey}&per_page=1`,
+      { next: { revalidate: 300 } }
+    );
+    const elapsed = Date.now() - start;
+    if (!res.ok) {
+      const body = await res.text();
+      return { name: "OpenFEC", status: "Down", message: `HTTP ${res.status}: ${body.slice(0, 100)}`, responseTimeMs: elapsed };
+    }
+    const data = await res.json();
+    const count = data.pagination?.count || 0;
+    return { name: "OpenFEC", status: "OK", message: `${count.toLocaleString()} candidates in database`, responseTimeMs: elapsed };
+  } catch (err) {
+    return { name: "OpenFEC", status: "Error", message: String(err), responseTimeMs: Date.now() - start };
+  }
+}
+
+export default async function StatusPage() {
+  const [congressResult, fecResult] = await Promise.all([
+    checkCongressApi(),
+    checkFecApi(),
+  ]);
+
+  const sources = [congressResult, fecResult];
 
   return (
     <div className="reading-container space-y-8">
       <div className="space-y-4">
-        <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-          Status
+        <h1 className="font-headline text-3xl font-bold text-[#041534]">
+          System Status
         </h1>
-        <p className="text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-          System information and deployment details.
+        <p className="text-sm text-[#75777F]">
+          Live health checks of PolitiTrack&apos;s data sources.
         </p>
       </div>
 
       <Card>
         <div className="space-y-6">
           <div>
-            <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-              Version
-            </h2>
-            <p className="text-zinc-700 dark:text-zinc-300">
-              <span className="font-medium">v0.1</span>
-            </p>
-          </div>
-
-          <div>
-            <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-              Build Information
-            </h2>
-            <p className="text-zinc-700 dark:text-zinc-300">
-              <span className="font-medium">Build time:</span> {buildTime}
-            </p>
-          </div>
-
-          <div>
-            <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="font-headline text-lg font-semibold text-[#041534] mb-4">
               Data Sources
             </h2>
-            {healthData && healthData.sources ? (
-              <div className="space-y-4">
-                {healthData.sources.map((source: any) => {
-                  const statusColor =
-                    source.status === "OK"
-                      ? "text-green-600 dark:text-green-400"
-                      : source.status === "Degraded"
-                      ? "text-yellow-600 dark:text-yellow-400"
-                      : "text-red-600 dark:text-red-400";
-                  
-                  return (
-                    <div
-                      key={source.name}
-                      className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-zinc-900 dark:text-zinc-100">
+            <div className="space-y-3">
+              {sources.map((source) => {
+                const statusColor =
+                  source.status === "OK"
+                    ? "text-[#1B6B3A]"
+                    : "text-[#BA1A1A]";
+                const dotColor =
+                  source.status === "OK"
+                    ? "bg-[#1B6B3A]"
+                    : "bg-[#BA1A1A]";
+
+                return (
+                  <div
+                    key={source.name}
+                    className="rounded border border-[#C5C6CF] p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-2.5 w-2.5 rounded-full ${dotColor}`} />
+                        <span className="font-medium text-[#191C1D]">
                           {source.name}
                         </span>
-                        <span className={`font-medium ${statusColor}`}>
-                          {source.status}
-                        </span>
                       </div>
-                      {source.lastSuccess && (
-                        <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
-                          Last success: {new Date(source.lastSuccess).toLocaleString()}
-                        </p>
-                      )}
-                      {source.lastError && (
-                        <div className="mt-2 space-y-1">
-                          <p className="text-xs text-red-600 dark:text-red-400">
-                            Last error: {source.lastError}
-                          </p>
-                          {source.lastErrorStatusCode && (
-                            <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                              Status code: {source.lastErrorStatusCode}
-                            </p>
-                          )}
-                          {source.lastErrorUrl && (
-                            <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                              Endpoint: {source.lastErrorUrl}
-                            </p>
-                          )}
-                          {source.lastErrorTime && (
-                            <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                              Time: {new Date(source.lastErrorTime).toLocaleString()}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                      <span className={`text-sm font-semibold ${statusColor}`}>
+                        {source.status}
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-zinc-700 dark:text-zinc-300">
-                  <span className="font-medium">Status:</span> Unable to fetch health data
-                </p>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                  Health monitoring is active but status is unavailable.
-                </p>
-              </div>
-            )}
+                    <p className="mt-2 text-xs text-[#75777F]">
+                      {source.message}
+                    </p>
+                    <p className="mt-1 text-xs text-[#75777F]">
+                      Response time: {source.responseTimeMs}ms
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div>
-            <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="font-headline text-lg font-semibold text-[#041534] mb-2">
+              Version
+            </h2>
+            <p className="text-sm text-[#191C1D]">v1.1</p>
+          </div>
+
+          <div>
+            <h2 className="font-headline text-lg font-semibold text-[#041534] mb-2">
+              Congress
+            </h2>
+            <p className="text-sm text-[#191C1D]">119th Congress (2025-2027)</p>
+          </div>
+
+          <div>
+            <h2 className="font-headline text-lg font-semibold text-[#041534] mb-2">
               Resources
             </h2>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               <li>
-                <Link
-                  href="/methodology"
-                  className="text-zinc-700 underline transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
-                >
+                <Link href="/methodology" className="text-sm text-[#041534] underline hover:text-[#1B2A4A]">
                   Methodology
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/"
-                  className="text-zinc-700 underline transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
-                >
+                <Link href="/" className="text-sm text-[#041534] underline hover:text-[#1B2A4A]">
                   Home
                 </Link>
               </li>
@@ -166,4 +164,3 @@ export default async function StatusPage() {
     </div>
   );
 }
-

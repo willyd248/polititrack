@@ -398,7 +398,7 @@ export async function fetchBills(limit: number = 10): Promise<Bill[]> {
   try {
     const { congressFetch } = await import("../congress");
     const response = await congressFetch<CongressBillsResponse>(
-      "/bill",
+      "/bill/119",
       {
         params: {
           limit,

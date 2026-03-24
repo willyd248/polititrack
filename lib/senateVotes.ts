@@ -255,7 +255,7 @@ async function fetchSenateVoteDetail(
  */
 export async function fetchSenateMemberVotes(
   lisId: string,
-  congress: number = 118,
+  congress: number = 119,
   session: number = 1,
   limit: number = 10
 ): Promise<Vote[]> {

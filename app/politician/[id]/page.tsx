@@ -85,8 +85,8 @@ export default async function PoliticianPage({
         // Fetch legislative activity (sponsored and cosponsored bills)
         try {
           const [sponsored, cosponsored] = await Promise.all([
-            fetchSponsoredBills(member.bioguideId, 118, 5),
-            fetchCosponsoredBills(member.bioguideId, 118, 5),
+            fetchSponsoredBills(member.bioguideId, 119, 5),
+            fetchCosponsoredBills(member.bioguideId, 119, 5),
           ]);
           sponsoredBills = sponsored;
           cosponsoredBills = cosponsored;
@@ -103,7 +103,7 @@ export default async function PoliticianPage({
         
         // Fetch roll-call votes (pass member object for lisId)
         try {
-          memberVotes = await fetchMemberVotes(member.bioguideId, 118, 10, member.chamber, member);
+          memberVotes = await fetchMemberVotes(member.bioguideId, 119, 10, member.chamber, member);
           if (process.env.NODE_ENV === "development") {
             console.log(`[PoliticianPage] Votes for ${member.bioguideId}:`, memberVotes?.length || 0);
           }

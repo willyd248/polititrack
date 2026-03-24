@@ -315,7 +315,7 @@ async function fetchSponsoredBillsAsStatements(
       const billId = bill.type && bill.number
         ? `${bill.type.toLowerCase()}${bill.number}`
         : `bill-${index}`;
-      const congress = bill.congress || 118;
+      const congress = bill.congress || 119;
       const chamberPath = bill.type === "S" ? "senate-bill" : "house-bill";
       const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${chamberPath}/${bill.number}`;
 

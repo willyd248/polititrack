@@ -97,7 +97,7 @@ function createVoteSources(
  */
 export async function fetchMemberVotes(
   bioguideId: string,
-  congress: number = 118,
+  congress: number = 119,
   limit: number = 20,
   chamber?: "House" | "Senate",
   member?: Member | null

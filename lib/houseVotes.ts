@@ -101,7 +101,7 @@ function createHouseVoteSources(
  * @returns Array of vote numbers with dates, or empty array if unavailable
  */
 async function fetchHouseVoteList(
-  congress: number = 118,
+  congress: number = 119,
   limit: number = 20
 ): Promise<Array<{ rollNumber: string; date: string }>> {
   try {
@@ -193,7 +193,7 @@ async function fetchHouseVoteDetail(
  */
 export async function fetchHouseMemberVotes(
   bioguideId: string,
-  congress: number = 118,
+  congress: number = 119,
   limit: number = 10
 ): Promise<Vote[]> {
   try {

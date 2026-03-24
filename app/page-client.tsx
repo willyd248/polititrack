@@ -83,11 +83,11 @@ export default function HomeClient({
       {/* Hero */}
       <div className="card p-8 md:p-12">
         <h1 className="font-headline text-3xl md:text-4xl font-bold text-[#041534] mb-4 leading-tight">
-          Understand where your representatives stand
+          Know where your tax dollars go and how your reps perform
         </h1>
         <p className="text-base text-[#75777F] max-w-2xl mb-6">
-          Track how politicians vote, where their money comes from, and what they say.
-          All information presented neutrally with primary sources.
+          See how your representatives vote, who funds their campaigns, and what legislation they&apos;re pushing.
+          Nonpartisan. Source-cited. Built for citizens who want transparency.
         </p>
 
         {/* Search */}
@@ -292,7 +292,7 @@ export default function HomeClient({
           </div>
         </div>
         <p className="text-sm text-[#75777F]">
-          Members of the 118th Congress with recent activity and key metrics
+          Members of the 119th Congress with recent activity and key metrics
         </p>
         {displayMembers.length > 0 ? (
           <MemberPlayerCards members={displayMembers} />

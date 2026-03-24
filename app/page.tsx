@@ -31,7 +31,7 @@ export default async function Home() {
   let showDataUnavailableIndicator = false;
   
   try {
-    const realMembers = await fetchMembers(118); // 118th Congress
+    const realMembers = await fetchMembers(119); // 119th Congress
     if (realMembers.length >= 5) {
       // Enrich members with years in office data
       const enrichedMembers = await Promise.all(
