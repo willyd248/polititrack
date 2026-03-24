@@ -36,20 +36,48 @@ interface PoliticianPageClientProps {
   sponsoredBills?: LegislativeActivityItem[] | null;
   cosponsoredBills?: LegislativeActivityItem[] | null;
   memberVotes?: Vote[];
+  fecCandidateId?: string | null;
 }
 
 export default function PoliticianPageClient({
   member,
   useMockData,
   politicianForCompare,
-  moneyData,
+  moneyData: initialMoneyData,
   sponsoredBills,
   cosponsoredBills,
   memberVotes = [],
+  fecCandidateId,
 }: PoliticianPageClientProps) {
   // Use politicianForCompare for all modules (Money/Votes remain mock for now)
   const politician = politicianForCompare;
-  
+
+  // Lazy-load FEC financial data client-side
+  const [moneyData, setMoneyData] = useState<MoneyModule | null>(initialMoneyData || null);
+  const [moneyLoading, setMoneyLoading] = useState(false);
+  const [moneyError, setMoneyError] = useState(false);
+
+  useEffect(() => {
+    if (initialMoneyData || !fecCandidateId) return;
+    let cancelled = false;
+    setMoneyLoading(true);
+    fetch(`/api/fec/money?fecId=${encodeURIComponent(fecCandidateId)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.moneyData) {
+          setMoneyData(data.moneyData);
+        }
+        if (data.error) setMoneyError(true);
+      })
+      .catch(() => {
+        if (!cancelled) setMoneyError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setMoneyLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [fecCandidateId, initialMoneyData]);
+
   // Use real money data if available, otherwise use mock data
   const displayMoneyData = moneyData || {
     totals: {

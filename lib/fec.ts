@@ -68,7 +68,7 @@ export async function fecFetch<T = unknown>(
         signal: controller.signal,
         next: options.revalidate
           ? { revalidate: options.revalidate }
-          : { revalidate: 3600 }, // Default: 1 hour cache
+          : { revalidate: 86400 }, // Default: 24 hour cache (FEC rate limit is 60/hr)
         headers: {
           Accept: "application/json",
         },

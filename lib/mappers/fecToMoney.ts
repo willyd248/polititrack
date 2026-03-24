@@ -133,7 +133,7 @@ async function getCandidateCommittees(
       `/candidate/${fecCandidateId}/committees/`,
       {
         params,
-        revalidate: 3600,
+        revalidate: 86400,
       }
     );
     
@@ -184,7 +184,7 @@ async function fetchTopContributors(
         `/candidate/${fecCandidateId}/schedules/schedule_a/by_contributor/`,
         {
           params,
-          revalidate: 3600, // 1 hour cache
+          revalidate: 86400, // 24 hour cache
         }
       );
       
@@ -246,7 +246,7 @@ async function fetchTopContributors(
           `/committee/${committeeId}/schedules/schedule_a/by_contributor/`,
           {
             params: committeeParams,
-            revalidate: 3600,
+            revalidate: 86400,
           }
         );
         
@@ -319,7 +319,7 @@ async function fetchIndustryBreakdown(
       `/candidate/${fecCandidateId}/totals/`,
       {
         params: totalsParams,
-        revalidate: 3600,
+        revalidate: 86400,
       }
     );
     
@@ -351,7 +351,7 @@ async function fetchIndustryBreakdown(
         `/candidate/${fecCandidateId}/schedules/schedule_a/by_employer/`,
         {
           params: industryParams,
-          revalidate: 3600, // 1 hour cache
+          revalidate: 86400, // 24 hour cache
         }
       );
       
@@ -407,7 +407,7 @@ async function fetchIndustryBreakdown(
           `/committee/${committeeId}/schedules/schedule_a/by_employer/`,
           {
             params: committeeParams,
-            revalidate: 3600,
+            revalidate: 86400,
           }
         );
         
@@ -476,7 +476,7 @@ export async function fetchMoneyForCandidate(
           per_page: 1, // Just get the most recent cycle
           sort_hide_null: false, // Include all results
         },
-        revalidate: 3600, // 1 hour cache
+        revalidate: 86400, // 24 hour cache
       }
     );
     

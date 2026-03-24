@@ -1,162 +1,107 @@
 /**
- * Server component that fetches member data and passes it to client component
+ * Server component that fetches member data and passes it to client component.
+ *
+ * FEC financial data is NOT fetched here — it's loaded client-side via
+ * /api/fec/money to avoid blocking the page on FEC rate limits (60/hr).
  */
 
 import { fetchMemberByBioguideId } from "../../../lib/congressMembers";
 import { politicians as mockPoliticians } from "../../../data/politicians";
 import { memberToPolitician } from "../../../lib/mappers/memberToPolitician";
-import { fetchMoneyForCandidate } from "../../../lib/mappers/fecToMoney";
 import { fetchSponsoredBills, fetchCosponsoredBills } from "../../../lib/congressSponsorship";
 import { fetchMemberVotes } from "../../../lib/congressVotes";
 import { Vote } from "../../../data/types";
+import { LegislativeActivityItem } from "../../../lib/congressSponsorship";
 import { notFound } from "next/navigation";
 import PoliticianPageClient from "./page-client";
 
-/**
- * Check if an ID looks like a valid bioguideId format
- * BioguideIds typically: Letter + 6 digits (e.g., "S000148", "A000360")
- */
 function isValidBioguideIdFormat(id: string): boolean {
-  // BioguideId pattern: starts with a letter, followed by 6 digits
   return /^[A-Z]\d{6}$/i.test(id);
 }
 
-/**
- * Server component that fetches member data by bioguideId
- */
+/** Wrap a promise with a timeout — returns null on timeout instead of blocking */
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), ms));
+  return Promise.race([promise, timeout]);
+}
+
 export default async function PoliticianPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  
-  // Try to fetch real member by bioguideId
-  let member = null;
-  let useMockData = false;
-  let politicianForCompare = null;
-  let moneyData = null;
-  let sponsoredBills = null;
-  let cosponsoredBills = null;
-  let memberVotes: Vote[] = [];
 
-  // Only try API if ID looks like a bioguideId (e.g., "S000148")
-  // Otherwise, go straight to mock data lookup
-  if (isValidBioguideIdFormat(id)) {
-    try {
-      member = await fetchMemberByBioguideId(id);
-      if (member) {
-        // Convert to politician for compare store compatibility
-        politicianForCompare = memberToPolitician(member);
-        
-        // Fetch money data if member has FEC candidate ID
-        if (member.fecCandidateId) {
-          if (process.env.NODE_ENV === "development") {
-            console.log(`[PoliticianPage] Fetching money data for ${member.bioguideId} with FEC ID: ${member.fecCandidateId}`);
-          }
-          try {
-            moneyData = await fetchMoneyForCandidate(member.fecCandidateId);
-            if (process.env.NODE_ENV === "development") {
-              console.log(`[PoliticianPage] Money data result for ${member.fecCandidateId}:`, {
-                found: !!moneyData,
-                raised: moneyData?.totals?.raised || 0,
-                spent: moneyData?.totals?.spent || 0,
-                cashOnHand: moneyData?.totals?.cashOnHand || 0,
-                topContributorsCount: moneyData?.topContributors?.length || 0,
-                industryBreakdownCount: moneyData?.industryBreakdown?.length || 0,
-              });
-            }
-          } catch (error) {
-            // Silently fail - money data is optional
-            console.warn(`[PoliticianPage] Failed to fetch money data for ${member.fecCandidateId}:`, error);
-          }
-        } else {
-          if (process.env.NODE_ENV === "development") {
-            console.log(`[PoliticianPage] Member ${member.bioguideId} has no FEC candidate ID. Full member object:`, {
-              bioguideId: member.bioguideId,
-              fullName: member.fullName,
-              state: member.state,
-              chamber: member.chamber,
-              fecCandidateId: member.fecCandidateId,
-            });
-          }
-        }
-        
-        // Fetch legislative activity (sponsored and cosponsored bills)
-        try {
-          const [sponsored, cosponsored] = await Promise.all([
-            fetchSponsoredBills(member.bioguideId, 119, 5),
-            fetchCosponsoredBills(member.bioguideId, 119, 5),
-          ]);
-          sponsoredBills = sponsored;
-          cosponsoredBills = cosponsored;
-          if (process.env.NODE_ENV === "development") {
-            console.log(`[PoliticianPage] Legislative activity for ${member.bioguideId}:`, {
-              sponsored: sponsored?.length || 0,
-              cosponsored: cosponsored?.length || 0,
-            });
-          }
-        } catch (error) {
-          // Silently fail - legislative activity is optional
-          console.warn(`Failed to fetch legislative activity for ${member.bioguideId}:`, error);
-        }
-        
-        // Fetch roll-call votes (pass member object for lisId)
-        try {
-          memberVotes = await fetchMemberVotes(member.bioguideId, 119, 10, member.chamber, member);
-          if (process.env.NODE_ENV === "development") {
-            console.log(`[PoliticianPage] Votes for ${member.bioguideId}:`, memberVotes?.length || 0);
-          }
-        } catch (error) {
-          // Silently fail - votes are optional
-          console.warn(`Failed to fetch votes for ${member.bioguideId}:`, error);
-        }
-      } else {
-        // Member not found in API, try mock data as fallback
-        const mockPolitician = mockPoliticians.find((p) => p.id === id);
-        if (mockPolitician) {
-          useMockData = true;
-          politicianForCompare = mockPolitician;
-        } else {
-          notFound();
-        }
-      }
-    } catch (error) {
-      // Fallback to mock data if API fails
-      console.warn(`Failed to fetch member ${id}, trying mock data:`, error);
-      const mockPolitician = mockPoliticians.find((p) => p.id === id);
-      if (mockPolitician) {
-        useMockData = true;
-        politicianForCompare = mockPolitician;
-      } else {
-        notFound();
-      }
-    }
-  } else {
-    // ID doesn't look like a bioguideId, go straight to mock data
+  // Non-bioguide IDs go straight to mock data
+  if (!isValidBioguideIdFormat(id)) {
     const mockPolitician = mockPoliticians.find((p) => p.id === id);
-    if (mockPolitician) {
-      useMockData = true;
-      politicianForCompare = mockPolitician;
-    } else {
-      notFound();
-    }
+    if (!mockPolitician) notFound();
+    return (
+      <PoliticianPageClient
+        member={null}
+        useMockData={true}
+        politicianForCompare={mockPolitician}
+        moneyData={null}
+        sponsoredBills={null}
+        cosponsoredBills={null}
+        memberVotes={[]}
+      />
+    );
   }
 
-  if (!politicianForCompare) {
-    notFound();
+  // Fetch member from Congress.gov (this is fast — ~1s)
+  let member;
+  try {
+    member = await withTimeout(fetchMemberByBioguideId(id), 10000);
+  } catch {
+    member = null;
   }
 
+  if (!member) {
+    // Try mock data as fallback
+    const mockPolitician = mockPoliticians.find((p) => p.id === id);
+    if (!mockPolitician) notFound();
+    return (
+      <PoliticianPageClient
+        member={null}
+        useMockData={true}
+        politicianForCompare={mockPolitician}
+        moneyData={null}
+        sponsoredBills={null}
+        cosponsoredBills={null}
+        memberVotes={[]}
+      />
+    );
+  }
+
+  const politicianForCompare = memberToPolitician(member);
+
+  // Fetch supplemental data in parallel with 8s timeout each
+  // These are all optional — page renders without them
+  const [sponsoredResult, cosponsoredResult, votesResult] = await Promise.allSettled([
+    withTimeout(fetchSponsoredBills(member.bioguideId, 119, 5), 8000),
+    withTimeout(fetchCosponsoredBills(member.bioguideId, 119, 5), 8000),
+    withTimeout(fetchMemberVotes(member.bioguideId, 119, 10, member.chamber, member), 8000),
+  ]);
+
+  const sponsoredBills: LegislativeActivityItem[] | null =
+    sponsoredResult.status === "fulfilled" ? sponsoredResult.value : null;
+  const cosponsoredBills: LegislativeActivityItem[] | null =
+    cosponsoredResult.status === "fulfilled" ? cosponsoredResult.value : null;
+  const memberVotes: Vote[] =
+    votesResult.status === "fulfilled" && votesResult.value ? votesResult.value : [];
+
+  // moneyData is null here — loaded client-side via /api/fec/money
   return (
     <PoliticianPageClient
       member={member}
-      useMockData={useMockData}
+      useMockData={false}
       politicianForCompare={politicianForCompare}
-      moneyData={moneyData}
+      moneyData={null}
       sponsoredBills={sponsoredBills}
       cosponsoredBills={cosponsoredBills}
       memberVotes={memberVotes}
+      fecCandidateId={member.fecCandidateId}
     />
   );
 }
-
