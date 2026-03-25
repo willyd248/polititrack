@@ -80,6 +80,15 @@ export default function RootLayout({
                     <main className="container-content mx-auto px-6 py-12 pb-24">
                       {children}
                     </main>
+                    <footer className="border-t border-gray-200 py-6 mt-4">
+                      <div className="container-content mx-auto px-6 flex items-center justify-between text-xs text-gray-400">
+                        <span>© 2025 PolitiTrack</span>
+                        <nav className="flex gap-4">
+                          <a href="/privacy-policy.html" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
+                          <a href="/terms.html" className="hover:text-gray-600 transition-colors">Terms of Service</a>
+                        </nav>
+                      </div>
+                    </footer>
                     <ReceiptsDrawer />
                     <CommandPalette />
                     <CompareTray />
