@@ -1227,26 +1227,11 @@ export default function PoliticianPageClient({
                     <span className="font-semibold">Congress.gov data temporarily unavailable.</span> Roll-call vote data may not be up to date.
                   </p>
                 </div>
-              ) : member.chamber === "House" ? (
-                <div className="py-8 text-center">
-                  <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                    H roll-call feed coming soon — we're working on integrating official House Clerk data sources.
-                  </p>
-                </div>
               ) : (
                 <div className="py-8 text-center">
-                  <div className="space-y-2">
-                    <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                      No roll-call votes found for this member in the current dataset.
-                    </p>
-                    {memberVotes === null || (Array.isArray(memberVotes) && memberVotes.length === 0) ? (
-                      <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                        {memberVotes === null
-                          ? "Vote data fetch may have failed. Check server logs for details."
-                          : "The member may not have cast roll-call votes in the 118th Congress yet, or the data may still be processing."}
-                      </p>
-                    ) : null}
-                  </div>
+                  <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                    No roll-call votes found for this member in the current dataset.
+                  </p>
                 </div>
               )}
             </div>
