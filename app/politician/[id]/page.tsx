@@ -11,8 +11,6 @@ import { memberToPolitician } from "../../../lib/mappers/memberToPolitician";
 import { fetchSponsoredBills, fetchCosponsoredBills } from "../../../lib/congressSponsorship";
 import { fetchMemberVotes } from "../../../lib/congressVotes";
 import { getFecCandidateIdForBioguide } from "../../../data/fec-mapping";
-import { getFecCandidateIdFromDataset } from "../../../lib/fecIdLookup";
-import { getFecCandidateIdByBioguideApi } from "../../../lib/fecBioguideApiLookup";
 import { Vote } from "../../../data/types";
 import { LegislativeActivityItem } from "../../../lib/congressSponsorship";
 import { notFound } from "next/navigation";
@@ -52,12 +50,13 @@ export default async function PoliticianPage({
     );
   }
 
-  // Fetch member from Congress.gov — skip FEC/LIS lookups so this stays fast (~1-2s)
-  // FEC data is loaded client-side via /api/fec/money
+  // Fetch member from Congress.gov — FEC ID resolved via unitedstates dataset (cached 24hr)
+  // and OpenFEC API search fallback. LIS lookup still skipped (not needed here).
+  // FEC money data is loaded client-side via /api/fec/money
   let member;
   try {
     member = await withTimeout(
-      fetchMemberByBioguideId(id, undefined, { skipFecLookup: true, skipLisLookup: true }),
+      fetchMemberByBioguideId(id, undefined, { skipLisLookup: true }),
       10000
     );
   } catch {
@@ -98,16 +97,8 @@ export default async function PoliticianPage({
   const memberVotes: Vote[] =
     votesResult.status === "fulfilled" && votesResult.value ? votesResult.value : [];
 
-  // Resolve FEC candidate ID in priority order (all fallbacks cached 24hr):
-  // 1. Manual override in data/fec-mapping.ts (sync, instant)
-  // 2. congress-legislators dataset (in-memory + ISR, covers most members)
-  // 3. OpenFEC /candidates/?bioguide_id=X (canonical API lookup, covers remainder)
-  // 4. null — money module stays hidden
-  const fecCandidateId: string | null =
-    getFecCandidateIdForBioguide(id) ||
-    (await withTimeout(getFecCandidateIdFromDataset(id), 3000)) ||
-    (await withTimeout(getFecCandidateIdByBioguideApi(id), 4000)) ||
-    null;
+  // Get FEC ID: manual override takes precedence, then dataset/API auto-lookup (via member)
+  const fecCandidateId = getFecCandidateIdForBioguide(id) || member.fecCandidateId || null;
 
   // moneyData is null here — loaded client-side via /api/fec/money
   return (
