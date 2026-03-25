@@ -50,12 +50,13 @@ export default async function PoliticianPage({
     );
   }
 
-  // Fetch member from Congress.gov — skip FEC/LIS lookups so this stays fast (~1-2s)
-  // FEC data is loaded client-side via /api/fec/money
+  // Fetch member from Congress.gov — FEC ID resolved via unitedstates dataset (cached 24hr)
+  // and OpenFEC API search fallback. LIS lookup still skipped (not needed here).
+  // FEC money data is loaded client-side via /api/fec/money
   let member;
   try {
     member = await withTimeout(
-      fetchMemberByBioguideId(id, undefined, { skipFecLookup: true, skipLisLookup: true }),
+      fetchMemberByBioguideId(id, undefined, { skipLisLookup: true }),
       10000
     );
   } catch {
@@ -96,8 +97,7 @@ export default async function PoliticianPage({
   const memberVotes: Vote[] =
     votesResult.status === "fulfilled" && votesResult.value ? votesResult.value : [];
 
-  // Get FEC ID from manual mapping (fast — no API call)
-  // Falls back to member.fecCandidateId if mapper already resolved it
+  // Get FEC ID: manual override takes precedence, then dataset/API auto-lookup (via member)
   const fecCandidateId = getFecCandidateIdForBioguide(id) || member.fecCandidateId || null;
 
   // moneyData is null here — loaded client-side via /api/fec/money
