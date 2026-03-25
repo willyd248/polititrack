@@ -1,12 +1,17 @@
 /**
  * Automatic FEC Candidate ID lookup using unitedstates/congress-legislators dataset
- * 
+ *
  * Server-only utility that fetches the public legislators dataset and builds
  * a map of bioguideId -> fecCandidateId.
- * 
+ *
  * Dataset: https://theunitedstates.io/congress-legislators/
- * 
- * This is used as a fallback after manual overrides in data/fec-mapping.ts
+ *
+ * NOTE: The static mapping in data/fec-mapping.ts covers all 538 current members
+ * as of 2026-03-25. This file is a fallback for newly sworn-in members only.
+ * The dataset is YAML (not JSON), so runtime parsing requires a YAML parser.
+ * Until that's added, this fallback returns null gracefully for any member not
+ * in the static mapping. Regenerate data/fec-mapping.ts periodically via:
+ *   node scripts/generate-fec-mapping.js
  */
 
 interface Legislator {
