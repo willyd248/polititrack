@@ -37,6 +37,8 @@ export default function HomeClient({
   const [zipCode, setZipCode] = useState("");
   const [districtInfo, setDistrictInfo] = useState<DistrictInfo | null>(null);
   const [districtMembers, setDistrictMembers] = useState<Member[]>([]);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const { addPolitician, removePolitician, isSelected } = useCompare();
   const { openReceipts } = useReceipts();
   const {
@@ -50,6 +52,26 @@ export default function HomeClient({
 
   const displayMembers = members || [];
   const displayPoliticians = useMockMembers ? mockPoliticians : displayMembers.map(memberToPolitician);
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewsletterStatus("loading");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newsletterEmail }),
+      });
+      if (res.ok) {
+        setNewsletterStatus("success");
+        setNewsletterEmail("");
+      } else {
+        setNewsletterStatus("error");
+      }
+    } catch {
+      setNewsletterStatus("error");
+    }
+  };
 
   const handleZipSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -351,6 +373,40 @@ export default function HomeClient({
           <div className="card p-8 text-center">
             <p className="text-sm text-[#75777F]">No bills available at this time.</p>
           </div>
+        )}
+      </section>
+
+      {/* Newsletter */}
+      <section className="card p-8 md:p-10">
+        <h2 className="font-headline text-xl font-bold text-[#041534] mb-1">Stay informed</h2>
+        <p className="text-sm text-[#75777F] mb-6">
+          Get a weekly breakdown of the votes that matter. No spin. No ads.
+        </p>
+        {newsletterStatus === "success" ? (
+          <p className="text-sm font-medium text-green-700">You&apos;re in — we&apos;ll be in touch.</p>
+        ) : (
+          <form onSubmit={handleNewsletterSubmit} className="flex gap-3 max-w-md">
+            <input
+              type="email"
+              required
+              placeholder="you@example.com"
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
+              disabled={newsletterStatus === "loading"}
+              className="flex-1 rounded border border-[#C5C6CF] bg-white px-4 py-2.5 text-sm text-[#191C1D] placeholder:text-[#75777F] focus:border-[#041534] focus:outline-none focus:ring-2 focus:ring-[#D9E2FF] disabled:opacity-50"
+            />
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={newsletterStatus === "loading"}
+            >
+              {newsletterStatus === "loading" ? "Subscribing…" : "Subscribe"}
+            </Button>
+          </form>
+        )}
+        {newsletterStatus === "error" && (
+          <p className="mt-2 text-xs text-red-600">Something went wrong. Please try again.</p>
         )}
       </section>
     </div>

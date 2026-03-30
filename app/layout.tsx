@@ -80,13 +80,29 @@ export default function RootLayout({
                     <main className="container-content mx-auto px-6 py-12 pb-24">
                       {children}
                     </main>
-                    <footer className="border-t border-gray-200 py-6 mt-4">
-                      <div className="container-content mx-auto px-6 flex items-center justify-between text-xs text-gray-400">
-                        <span>© 2025 PolitiTrack</span>
-                        <nav className="flex gap-4">
-                          <a href="/privacy-policy.html" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
-                          <a href="/terms.html" className="hover:text-gray-600 transition-colors">Terms of Service</a>
-                        </nav>
+                    <footer className="border-t border-gray-200 py-8 mt-4">
+                      <div className="container-content mx-auto px-6 space-y-5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-semibold text-[#041534]">Support PolitiTrack</p>
+                            <p className="text-xs text-[#75777F] mt-0.5">Help keep government data free and accessible.</p>
+                          </div>
+                          <a
+                            href="https://buymeacoffee.com/polititrack"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded border border-[#C5C6CF] bg-white px-4 py-2 text-sm font-medium text-[#041534] hover:bg-[#EDEEEF] transition-colors self-start sm:self-auto"
+                          >
+                            ☕ Buy me a coffee
+                          </a>
+                        </div>
+                        <div className="border-t border-gray-200 pt-4 flex items-center justify-between text-xs text-gray-400">
+                          <span>© 2026 PolitiTrack</span>
+                          <nav className="flex gap-4">
+                            <a href="/privacy-policy.html" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
+                            <a href="/terms.html" className="hover:text-gray-600 transition-colors">Terms of Service</a>
+                          </nav>
+                        </div>
                       </div>
                     </footer>
                     <ReceiptsDrawer />
