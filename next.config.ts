@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "unitedstates.github.io",
+      },
+      {
+        protocol: "https",
         hostname: "*.congress.gov",
       },
     ],
