@@ -28,6 +28,14 @@ interface SenateVoteList {
   };
 }
 
+interface SenateVoteMember {
+  lis_member_id?: string;
+  vote_cast?: string; // "Yea", "Nay", "Present", "Not Voting"
+  last_name?: string;
+  first_name?: string;
+  party?: string; // "D", "R", "I"
+}
+
 interface SenateVoteDetail {
   vote?: {
     vote_number?: string;
@@ -39,12 +47,7 @@ interface SenateVoteDetail {
       nays?: string;
     };
     members?: {
-      member?: Array<{
-        lis_member_id?: string;
-        vote_cast?: string; // "Yea", "Nay", "Present", "Not Voting"
-        last_name?: string;
-        first_name?: string;
-      }>;
+      member?: SenateVoteMember[];
     };
   };
 }
@@ -132,18 +135,20 @@ function parseSenateXml(xmlText: string): any {
   }
   
   // Extract members (handle both <member> and <members><member>)
-  const members: Array<{ lis_member_id?: string; vote_cast?: string }> = [];
+  const members: SenateVoteMember[] = [];
   const memberMatches = xmlText.matchAll(/<member>([\s\S]*?)<\/member>/gi);
   for (const match of memberMatches) {
     const memberXml = match[1];
     // Try both lis_member_id and lisMemberId formats
     const lisIdMatch = memberXml.match(/<lis[_mM]ember[_iI]d>([^<]+)<\/lis[_mM]ember[_iI]d>/i);
     const voteCastMatch = memberXml.match(/<vote[_cC]ast>([^<]+)<\/vote[_cC]ast>/i);
-    
+    const partyMatch = memberXml.match(/<party>([^<]+)<\/party>/i);
+
     if (lisIdMatch || voteCastMatch) {
       members.push({
         lis_member_id: lisIdMatch ? lisIdMatch[1].trim() : undefined,
         vote_cast: voteCastMatch ? voteCastMatch[1].trim() : undefined,
+        party: partyMatch ? partyMatch[1].trim() : undefined,
       });
     }
   }
@@ -245,19 +250,40 @@ async function fetchSenateVoteDetail(
 }
 
 /**
+ * Compute the majority position for a given party from all members' votes
+ */
+function computePartyMajority(
+  members: SenateVoteMember[],
+  party: string
+): "Yes" | "No" | "Abstain" {
+  let yeas = 0;
+  let nays = 0;
+  for (const m of members) {
+    if (m.party !== party || !m.vote_cast) continue;
+    const pos = normalizeSenatePosition(m.vote_cast);
+    if (pos === "Yes") yeas++;
+    else if (pos === "No") nays++;
+  }
+  if (yeas === 0 && nays === 0) return "Abstain";
+  return yeas >= nays ? "Yes" : "No";
+}
+
+/**
  * Fetch roll-call votes for a Senate member
- * 
+ *
  * @param lisId - Senator's LIS ID (e.g., "S148")
  * @param congress - Congress number (default: 118)
  * @param session - Session number (default: 1)
  * @param limit - Maximum number of votes to return (default: 10)
+ * @param memberParty - Member's party ("D", "R", "I") for computing party loyalty
  * @returns Array of normalized Vote objects
  */
 export async function fetchSenateMemberVotes(
   lisId: string,
   congress: number = 119,
   session: number = 1,
-  limit: number = 10
+  limit: number = 10,
+  memberParty?: string
 ): Promise<Vote[]> {
   try {
     // Get list of recent votes
@@ -288,38 +314,34 @@ export async function fetchSenateMemberVotes(
       if (!members) {
         continue;
       }
-      
+
       // Handle both array and single member cases
-      let memberVote: { lis_member_id?: string; vote_cast?: string } | null = null;
-      
-      if (Array.isArray(members)) {
-        const found = members.find((m: any) => m.lis_member_id === lisId);
-        if (found) {
-          memberVote = found;
-        }
-      } else {
-        const singleMember = members as any;
-        if (singleMember.lis_member_id === lisId) {
-          memberVote = singleMember;
-        }
-      }
-      
+      const memberList = Array.isArray(members) ? members : [members as SenateVoteMember];
+      const memberVote = memberList.find((m) => m.lis_member_id === lisId);
+
       if (!memberVote || !memberVote.vote_cast) {
         continue;
       }
-      
+
       // Build vote object
       const voteDate = voteDetail.vote.vote_date || "";
       const question = voteDetail.vote.question || voteDetail.vote.issue || "Roll Call Vote";
       const description = question;
       const topic = inferTopicFromText(description) || "Other";
-      
+
+      // Compute party majority position if we know the member's party
+      const effectiveParty = memberParty || memberVote.party;
+      const partyMajorityPosition = effectiveParty
+        ? computePartyMajority(memberList, effectiveParty)
+        : undefined;
+
       votes.push({
         id: `vote-${congress}-${session}-${rollNumber}`,
         topic,
         date: voteDate,
         description,
         position: normalizeSenatePosition(memberVote.vote_cast),
+        partyMajorityPosition,
         sources: createSenateVoteSources(rollNumber, voteDate, congress, session),
       });
     }

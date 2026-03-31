@@ -170,25 +170,50 @@ async function getCandidateCommittees(
 /**
  * Aggregate raw schedule_a contributions by contributor name
  */
+/**
+ * Check if a contributor name is a fundraising platform (pass-through)
+ */
+function isFundraisingPlatform(name: string): boolean {
+  const upper = name.toUpperCase().trim();
+  return FUNDRAISING_PLATFORMS.has(upper);
+}
+
 function aggregateContributors(
   results: FecScheduleAItem[]
 ): Array<{ name: string; amount: string }> {
   const contributorMap = new Map<string, number>();
+  const platformMap = new Map<string, number>();
 
   for (const item of results) {
     if (item.contributor_name) {
       const amount = item.contribution_receipt_amount || 0;
       if (amount > 0) {
-        const current = contributorMap.get(item.contributor_name) || 0;
-        contributorMap.set(item.contributor_name, current + amount);
+        if (isFundraisingPlatform(item.contributor_name)) {
+          const current = platformMap.get(item.contributor_name) || 0;
+          platformMap.set(item.contributor_name, current + amount);
+        } else {
+          const current = contributorMap.get(item.contributor_name) || 0;
+          contributorMap.set(item.contributor_name, current + amount);
+        }
       }
     }
   }
 
-  return Array.from(contributorMap.entries())
+  // Real contributors first (up to 10)
+  const realContributors = Array.from(contributorMap.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
     .map(([name, amount]) => ({ name, amount: formatCurrency(amount) }));
+
+  // Append fundraising platforms at the end with label
+  const platforms = Array.from(platformMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, amount]) => ({
+      name: `via ${name} (fundraising platform)`,
+      amount: formatCurrency(amount),
+    }));
+
+  return [...realContributors, ...platforms];
 }
 
 /**
@@ -254,21 +279,33 @@ async function fetchTopContributors(
  */
 const INDUSTRY_RULES: Array<{ sector: string; patterns: RegExp }> = [
   { sector: "Defense", patterns: /DEFENSE|LOCKHEED|RAYTHEON|BOEING|NORTHROP|GRUMMAN|GENERAL DYNAMICS|BAE SYSTEMS|L3HARRIS|LEIDOS|SAIC|HUNTINGTON INGALLS|MILITARY|ARMED FORCES/ },
-  { sector: "Healthcare", patterns: /HEALTH|PHARMA|MEDICAL|HOSPITAL|AETNA|CIGNA|UNITEDHEALTH|HUMANA|ANTHEM|BLUECROSS|BLUE CROSS|KAISER|PFIZER|JOHNSON & JOHNSON|MERCK|ABBOTT|AMGEN|BIOTECH|NURSE|PHYSICIAN|DOCTOR|DENTAL|OPTOM|CLINIC|SURGICAL|ORTHO|CARDIO|ONCOL/ },
-  { sector: "Energy", patterns: /ENERGY|OIL|GAS|PETROLEUM|EXXON|CHEVRON|SHELL|CONOCO|HALLIBURTON|SCHLUMBERGER|SOLAR|WIND POWER|PIPELINE|DRILLING|REFIN|UTILITIES|ELECTRIC POWER|COAL|MINING|NUCLEAR/ },
-  { sector: "Finance & Insurance", patterns: /BANK|FINANCIAL|INSURANCE|GOLDMAN|JPMORGAN|JP MORGAN|WELLS FARGO|MORGAN STANLEY|CITIGROUP|CITI|CREDIT SUISSE|BLACKROCK|VANGUARD|FIDELITY|CAPITAL GROUP|STATE STREET|PRUDENTIAL|METLIFE|ALLSTATE|BERKSHIRE|HEDGE|PRIVATE EQUITY|VENTURE CAPITAL|INVESTMENT|SECURITIES|BROKER|MUTUAL FUND|ASSET MANAGE/ },
-  { sector: "Technology", patterns: /TECH|GOOGLE|ALPHABET|MICROSOFT|APPLE INC|META PLATFORMS|FACEBOOK|AMAZON|ORACLE|INTEL|IBM|CISCO|SALESFORCE|ADOBE|NVIDIA|QUALCOMM|SOFTWARE|COMPUTER|CYBER|DATA|CLOUD|DIGITAL|\.COM|SEMICONDUCTOR|SILICON/ },
-  { sector: "Real Estate", patterns: /REAL ESTATE|REALTOR|REALTY|HOUSING|PROPERTY|MORTGAGE|HOME BUILD|CONSTRUCTION|DEVELOP.*GROUP|DEVELOP.*CORP|DEVELOP.*LLC|BUILDING|ARCHITECT/ },
-  { sector: "Education", patterns: /EDUCATION|TEACHER|UNIVERSITY|COLLEGE|SCHOOL|PROFESSOR|ACADEMIC|TUTOR|LIBRARIAN|STUDENT|HIGHER ED/ },
-  { sector: "Agriculture", patterns: /AGRICULTUR|FARM|RANCH|CROP|LIVESTOCK|DAIRY|CATTLE|POULTRY|GRAIN|SEED|FERTILIZ|MONSANTO|CARGILL|ARCHER DANIELS|ADM|DEERE|AGRI/ },
-  { sector: "Transportation", patterns: /TRANSPORT|AIRLINE|RAILROAD|RAIL|FREIGHT|SHIPPING|LOGISTICS|TRUCKING|AVIATION|PILOT|FEDEX|UPS(?:\s|$)|DELTA AIR|UNITED AIR|AMERICAN AIR|SOUTHWEST AIR|UBER|LYFT|TRANSIT/ },
-  { sector: "Telecommunications", patterns: /TELECOM|COMCAST|VERIZON|AT&T|T-MOBILE|SPRINT|CHARTER COMM|CABLE|WIRELESS|BROADCAST|MEDIA GROUP|NEWS CORP|DISNEY|WARNER|NBC|CBS|FOX\s/ },
+  { sector: "Healthcare", patterns: /HEALTH|PHARMA|MEDICAL|HOSPITAL|AETNA|CIGNA|UNITEDHEALTH|HUMANA|ANTHEM|BLUECROSS|BLUE CROSS|KAISER|PFIZER|JOHNSON & JOHNSON|MERCK|ABBOTT|AMGEN|BIOTECH|NURSE|PHYSICIAN|DOCTOR|DENTAL|OPTOM|CLINIC|SURGICAL|ORTHO|CARDIO|ONCOL|THERAPY|REHAB|DIAGNOS|VETERINAR/ },
+  { sector: "Energy", patterns: /ENERGY|OIL|GAS|PETROLEUM|EXXON|CHEVRON|SHELL|CONOCO|HALLIBURTON|SCHLUMBERGER|SOLAR|WIND POWER|PIPELINE|DRILLING|REFIN|UTILITIES|ELECTRIC POWER|COAL|MINING|NUCLEAR|NATURAL GAS|PROPANE|FUEL|POWER PLANT/ },
+  { sector: "Finance & Insurance", patterns: /BANK|FINANCIAL|INSURANCE|GOLDMAN|JPMORGAN|JP MORGAN|WELLS FARGO|MORGAN STANLEY|CITIGROUP|CITI|CREDIT SUISSE|BLACKROCK|VANGUARD|FIDELITY|CAPITAL GROUP|STATE STREET|PRUDENTIAL|METLIFE|ALLSTATE|BERKSHIRE|HEDGE|PRIVATE EQUITY|VENTURE CAPITAL|INVESTMENT|SECURITIES|BROKER|MUTUAL FUND|ASSET MANAGE|ACCOUNTING|CPA|DELOITTE|KPMG|ERNST & YOUNG|PRICEWATERHOUSE|PWC|CREDIT UNION|LENDING|LOAN/ },
+  { sector: "Technology", patterns: /TECH|GOOGLE|ALPHABET|MICROSOFT|APPLE INC|META PLATFORMS|FACEBOOK|AMAZON|ORACLE|INTEL|IBM|CISCO|SALESFORCE|ADOBE|NVIDIA|QUALCOMM|SOFTWARE|COMPUTER|CYBER|DATA|CLOUD|DIGITAL|\.COM|SEMICONDUCTOR|SILICON|AI\b|ARTIFICIAL INTELL|ROBOTIC/ },
+  { sector: "Real Estate & Construction", patterns: /REAL ESTATE|REALTOR|REALTY|HOUSING|PROPERTY|MORTGAGE|HOME BUILD|CONSTRUCTION|DEVELOP.*GROUP|DEVELOP.*CORP|DEVELOP.*LLC|BUILDING|ARCHITECT|CONTRACTOR|PLUMBING|ELECTRICAL|HVAC|ROOFING|PAVING|EXCAVAT|CEMENT|CONCRETE|LUMBER|MASON/ },
+  { sector: "Education", patterns: /EDUCATION|TEACHER|UNIVERSITY|COLLEGE|SCHOOL|PROFESSOR|ACADEMIC|TUTOR|LIBRARIAN|HIGHER ED|RESEARCH INSTITUT/ },
+  { sector: "Agriculture", patterns: /AGRICULTUR|FARM|RANCH|CROP|LIVESTOCK|DAIRY|CATTLE|POULTRY|GRAIN|SEED|FERTILIZ|MONSANTO|CARGILL|ARCHER DANIELS|ADM|DEERE|AGRI|TIMBER|FORESTRY|FISHING|AQUACULTUR/ },
+  { sector: "Transportation", patterns: /TRANSPORT|AIRLINE|RAILROAD|RAIL|FREIGHT|SHIPPING|LOGISTICS|TRUCKING|AVIATION|PILOT|FEDEX|UPS(?:\s|$)|DELTA AIR|UNITED AIR|AMERICAN AIR|SOUTHWEST AIR|UBER|LYFT|TRANSIT|AUTO DEALER|CAR DEALER|MOTOR|VEHICLE DEAL/ },
+  { sector: "Telecommunications & Media", patterns: /TELECOM|COMCAST|VERIZON|AT&T|T-MOBILE|SPRINT|CHARTER COMM|CABLE|WIRELESS|BROADCAST|MEDIA GROUP|NEWS CORP|DISNEY|WARNER|NBC|CBS|FOX\s|PUBLISH|ENTERTAINMENT|MOVIE|FILM|MUSIC|RECORD LABEL|STREAMING|NETFLIX|SPOTIFY/ },
   { sector: "Labor Unions", patterns: /LABOR|UNION|WORKERS|AFL.CIO|SEIU|TEAMSTER|AFSCME|UAW|IBEW|UFCW|CARPENTERS|PLUMBERS|IRONWORKER|SHEET METAL|OPERATING ENGINEER|PIPE ?FITTER|MACHINISTS|STEELWORK/ },
-  { sector: "Legal", patterns: /LAW\b|ATTORNEY|LEGAL|LAWYER|FIRM.*LLP|LLP$|LITIGATION|COUNSEL/ },
-  { sector: "Retail & Consumer", patterns: /RETAIL|WALMART|TARGET|COSTCO|HOME DEPOT|LOWE'S|CONSUMER|RESTAURANT|FOOD SERVICE|MCDONALD|STARBUCK|HOSPITALITY|HOTEL|MARRIOTT|HILTON/ },
-  { sector: "Manufacturing", patterns: /MANUFACTUR|INDUSTRIAL|FACTORY|STEEL|ALUMINUM|CHEMICAL|DOW CHEM|DUPONT|3M|CATERPILLAR|HONEYWELL|GENERAL ELECTRIC/ },
-  { sector: "Lobbying & Political", patterns: /LOBBY|POLITICAL|PAC$|COMMITTEE|CAMPAIGN|GOVERNMENT AFFAIR|PUBLIC AFFAIR|ADVOCACY|CIVIC/ },
+  { sector: "Legal", patterns: /LAW\b|ATTORNEY|LEGAL|LAWYER|FIRM.*LLP|LLP$|LITIGATION|COUNSEL|PLLC$/ },
+  { sector: "Food & Beverage", patterns: /FOOD|BEVERAGE|BREW|DISTILL|WINERY|WINE|BEER|SPIRITS|COCA.COLA|PEPSI|NESTLE|TYSON|SMITHFIELD|GROCERY|SUPERMARKET|BAKERY|CONFECTION|MEAT PACK/ },
+  { sector: "Retail & Hospitality", patterns: /RETAIL|WALMART|TARGET|COSTCO|HOME DEPOT|LOWE'S|CONSUMER|RESTAURANT|FOOD SERVICE|MCDONALD|STARBUCK|HOSPITALITY|HOTEL|MARRIOTT|HILTON|RESORT|CASINO|GAMING|TRAVEL|TOURISM/ },
+  { sector: "Manufacturing", patterns: /MANUFACTUR|INDUSTRIAL|FACTORY|STEEL|ALUMINUM|CHEMICAL|DOW CHEM|DUPONT|3M|CATERPILLAR|HONEYWELL|GENERAL ELECTRIC|TEXTILE|APPAREL|PAPER|PACKAGING|PLASTICS|RUBBER|GLASS|CERAMICS/ },
+  { sector: "Lobbying & Political", patterns: /LOBBY|POLITICAL|PAC$|COMMITTEE|CAMPAIGN|GOVERNMENT AFFAIR|PUBLIC AFFAIR|ADVOCACY|CIVIC|PUBLIC POLICY|THINK TANK|CONSULTANT.*POLITICAL|GOVERNMENT RELATIONS/ },
+  { sector: "Nonprofit & Religious", patterns: /NONPROFIT|NON.PROFIT|CHARITY|FOUNDATION|CHURCH|MINISTRY|RELIGIOUS|FAITH|TEMPLE|SYNAGOGUE|MOSQUE|CHARITABLE|HUMANITARIAN|RED CROSS|UNITED WAY|SALVATION ARMY/ },
+  { sector: "Professional Services", patterns: /CONSULT|ADVISORY|MANAGEMENT GROUP|MANAGEMENT CO|STAFFING|RECRUIT|HUMAN RESOURCE|MARKETING|ADVERTISING|PR\s|PUBLIC RELATIONS|DESIGN\s|ENGINEERING\s|ENGINEER(?:ING)?.*(?:FIRM|GROUP|CORP|LLC|INC)|SURVEYOR/ },
 ];
+
+/**
+ * Fundraising platforms that are pass-throughs for small-dollar donations.
+ * These are NOT actual donors — they aggregate contributions from individuals.
+ */
+const FUNDRAISING_PLATFORMS = new Set([
+  "WINRED", "WIN RED", "ACTBLUE", "ACT BLUE", "ANEDOT", "DONORBOX",
+  "ACTBLUE TECHNICAL SERVICES", "WINRED TECHNICAL SERVICES",
+]);
 
 /**
  * Employers/occupations that are noise for industry classification — these are
@@ -342,12 +379,15 @@ async function fetchIndustryBreakdown(
     for (const item of response.results || []) {
       if (!item.employer || !item.total || item.total <= 0) continue;
 
+      // Skip fundraising platforms — they're pass-throughs, not industries
+      const upper = item.employer.toUpperCase().trim();
+      if (FUNDRAISING_PLATFORMS.has(upper)) continue;
+
       const sector = classifyIndustry(item.employer);
       if (sector) {
         sectorTotals.set(sector, (sectorTotals.get(sector) || 0) + item.total);
       } else {
         // Only count genuinely unclassified orgs, not noise
-        const upper = item.employer.toUpperCase().trim();
         if (!NOISE_EMPLOYERS.has(upper)) {
           unclassifiedTotal += item.total;
         }

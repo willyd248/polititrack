@@ -83,7 +83,7 @@ function alignmentColor(a: InsightConnection["alignment"]): string {
 const NAV_SECTIONS = [
   { id: "follow-money", label: "Follow the Money" },
   { id: "finance",      label: "Campaign Finance" },
-  { id: "votes",        label: "Votes" },
+  { id: "votes",        label: "How They Vote" },
   { id: "legislation",  label: "Legislation" },
   { id: "statements",   label: "Statements" },
 ];
@@ -251,10 +251,11 @@ export default function PoliticianPageClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const displayStatements =
-    realStatements && realStatements.length > 0
-      ? realStatements
-      : politician.statements.statements;
+  // Only show actual press releases — filter out sponsored bill fallbacks
+  // which display poorly as "Sponsored legislation" repeated entries
+  const pressReleases = (realStatements ?? []).filter(
+    (s) => s.sourceType === "Press Release"
+  );
 
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -606,13 +607,13 @@ export default function PoliticianPageClient({
             )}
           </section>
 
-          {/* ── VOTING RECORD ─────────────────────────────────────────────── */}
+          {/* ── HOW THEY VOTE ─────────────────────────────────────────────── */}
           <section id="votes" className="scroll-mt-20">
             <div className="flex items-start justify-between mb-5">
               <div>
                 <SectionLabel label="Accountability" />
-                <h2 className="font-headline text-2xl font-bold text-primary">Voting Record</h2>
-                <p className="text-sm text-on-surface-variant mt-0.5">Roll-call votes in the 119th Congress</p>
+                <h2 className="font-headline text-2xl font-bold text-primary">How They Vote</h2>
+                <p className="text-sm text-on-surface-variant mt-0.5">Party loyalty and voting patterns in the 119th Congress</p>
               </div>
               {memberVotes.length > 0 && (
                 <button
@@ -631,58 +632,66 @@ export default function PoliticianPageClient({
             </div>
 
             {memberVotes.length > 0 ? (
-              <div className="rounded-xl border border-surface-container bg-white shadow-sm overflow-hidden">
-                {/* Mobile: card list */}
-                <div className="sm:hidden divide-y divide-surface-container-low">
-                  {memberVotes.slice(0, 10).map((vote, i) => (
-                    <div key={i} className="px-4 py-3 flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-on-surface line-clamp-2">{vote.description}</p>
-                        <p className="mt-0.5 text-xs text-outline">{vote.date}</p>
-                      </div>
-                      <VoteBadge position={vote.position} />
-                    </div>
-                  ))}
-                </div>
-                {/* Desktop: table */}
-                <table className="hidden sm:table w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-surface-container bg-surface-container-low/50">
-                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-outline">
-                        Bill / Description
-                      </th>
-                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-outline">
-                        Topic
-                      </th>
-                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-outline">
-                        Date
-                      </th>
-                      <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-outline">
-                        Vote
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-surface-container-low">
+              <div className="space-y-4">
+                <HowTheyVote votes={memberVotes} party={displayParty} />
+
+                {/* Recent votes table */}
+                <div className="rounded-xl border border-surface-container bg-white shadow-sm overflow-hidden">
+                  <p className="px-5 pt-4 pb-2 text-[10px] font-semibold uppercase tracking-widest text-outline">
+                    Recent Votes
+                  </p>
+                  {/* Mobile: card list */}
+                  <div className="sm:hidden divide-y divide-surface-container-low">
                     {memberVotes.slice(0, 10).map((vote, i) => (
-                      <tr key={i} className="hover:bg-surface-container-low/50 transition-colors">
-                        <td className="px-4 py-3 text-on-surface max-w-xs">
-                          <span className="line-clamp-2">{vote.description}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {vote.topic && (
-                            <span className="rounded-full bg-surface-container px-2 py-0.5 text-xs text-on-surface-variant">
-                              {vote.topic}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-outline whitespace-nowrap">{vote.date}</td>
-                        <td className="px-4 py-3 text-right">
-                          <VoteBadge position={vote.position} />
-                        </td>
-                      </tr>
+                      <div key={i} className="px-4 py-3 flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-on-surface line-clamp-2">{vote.description}</p>
+                          <p className="mt-0.5 text-xs text-outline">{vote.date}</p>
+                        </div>
+                        <VoteBadge position={vote.position} />
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                  {/* Desktop: table */}
+                  <table className="hidden sm:table w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-surface-container bg-surface-container-low/50">
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-outline">
+                          Bill / Description
+                        </th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-outline">
+                          Topic
+                        </th>
+                        <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-outline">
+                          Date
+                        </th>
+                        <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-outline">
+                          Vote
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-container-low">
+                      {memberVotes.slice(0, 10).map((vote, i) => (
+                        <tr key={i} className="hover:bg-surface-container-low/50 transition-colors">
+                          <td className="px-4 py-3 text-on-surface max-w-xs">
+                            <span className="line-clamp-2">{vote.description}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {vote.topic && (
+                              <span className="rounded-full bg-surface-container px-2 py-0.5 text-xs text-on-surface-variant">
+                                {vote.topic}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-outline whitespace-nowrap">{vote.date}</td>
+                          <td className="px-4 py-3 text-right">
+                            <VoteBadge position={vote.position} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ) : member && !useMockData ? (
               <EmptyCard text="No roll-call votes found in the current dataset for this member." />
@@ -762,7 +771,7 @@ export default function PoliticianPageClient({
                 )}
               </div>
             ) : (
-              <EmptyCard text="No sponsored or cosponsored bills found in the 119th Congress." />
+              <EmptyCard text={`${displayName} has not sponsored or cosponsored any bills in the current (119th) Congress session.`} />
             )}
           </section>
 
@@ -774,13 +783,13 @@ export default function PoliticianPageClient({
                 <h2 className="font-headline text-2xl font-bold text-primary">Statements & Press Releases</h2>
                 <p className="text-sm text-on-surface-variant mt-0.5">Official statements from the member&apos;s office</p>
               </div>
-              {displayStatements.length > 0 && (
+              {pressReleases.length > 0 && (
                 <button
                   onClick={() =>
                     openReceipts({
                       heading:    "Statement Sources",
                       subheading: displayName,
-                      sources:    displayStatements.flatMap((s) => s.sources),
+                      sources:    pressReleases.flatMap((s) => s.sources),
                     })
                   }
                   className="shrink-0 text-xs font-medium text-outline hover:text-on-surface underline underline-offset-2 mt-1"
@@ -792,9 +801,9 @@ export default function PoliticianPageClient({
 
             {statementsLoading && <LoadingCard text="Loading statements…" />}
 
-            {!statementsLoading && displayStatements.length > 0 && (
+            {!statementsLoading && pressReleases.length > 0 && (
               <div className="rounded-xl border border-surface-container bg-white shadow-sm divide-y divide-surface-container-low">
-                {displayStatements.slice(0, 6).map((stmt, i) => (
+                {pressReleases.slice(0, 6).map((stmt, i) => (
                   <div key={i} className="px-5 py-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -817,8 +826,8 @@ export default function PoliticianPageClient({
               </div>
             )}
 
-            {!statementsLoading && displayStatements.length === 0 && (
-              <EmptyCard text="No public statements found for this member." />
+            {!statementsLoading && pressReleases.length === 0 && (
+              <EmptyCard text="No public press releases available for this member. RSS feeds from their official website were not accessible." />
             )}
           </section>
 
@@ -886,6 +895,134 @@ function AlertCard({ text, variant = "warn" }: { text: string; variant?: "warn" 
       ? "border-blue-100 bg-blue-50 text-blue-700"
       : "border-amber-100 bg-amber-50 text-amber-700";
   return <div className={`rounded-xl border p-4 text-sm ${cls}`}>{text}</div>;
+}
+
+function HowTheyVote({ votes, party }: { votes: Vote[]; party: string }) {
+  // Compute party loyalty — % of votes matching party majority
+  const votesWithPartyData = votes.filter((v) => v.partyMajorityPosition && v.position !== "Abstain");
+  const loyalVotes = votesWithPartyData.filter((v) => v.position === v.partyMajorityPosition);
+  const loyaltyPct = votesWithPartyData.length > 0
+    ? Math.round((loyalVotes.length / votesWithPartyData.length) * 100)
+    : null;
+
+  // Compute topic breakdown — Yes/No counts per topic
+  const topicMap = new Map<string, { yes: number; no: number; abstain: number; total: number }>();
+  for (const v of votes) {
+    const topic = v.topic || "Other";
+    const entry = topicMap.get(topic) || { yes: 0, no: 0, abstain: 0, total: 0 };
+    entry.total++;
+    if (v.position === "Yes") entry.yes++;
+    else if (v.position === "No") entry.no++;
+    else entry.abstain++;
+    topicMap.set(topic, entry);
+  }
+  const topicBreakdown = Array.from(topicMap.entries())
+    .filter(([t]) => t !== "Other")
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 6);
+
+  const loyaltyColor = loyaltyPct === null ? "#75777F"
+    : loyaltyPct >= 90 ? "#A63744"
+    : loyaltyPct >= 70 ? "#D97706"
+    : "#1B6B3A";
+
+  const loyaltyLabel = loyaltyPct === null ? "Insufficient data"
+    : loyaltyPct >= 90 ? "Strong party loyalist"
+    : loyaltyPct >= 70 ? "Moderate party loyalist"
+    : loyaltyPct >= 50 ? "Independent-leaning"
+    : "Frequent party dissenter";
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {/* Party Loyalty */}
+      <div className="rounded-xl border border-surface-container bg-white p-5 shadow-sm">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-outline mb-4">
+          Party Loyalty
+        </p>
+        {loyaltyPct !== null ? (
+          <div>
+            <div className="flex items-end gap-3 mb-2">
+              <span className="text-4xl font-bold" style={{ color: loyaltyColor }}>
+                {loyaltyPct}%
+              </span>
+              <span className="text-sm text-on-surface-variant pb-1">
+                votes with {partyLabel(party)} majority
+              </span>
+            </div>
+            {/* Gauge bar */}
+            <div className="relative h-2.5 w-full rounded-full bg-surface-container overflow-hidden mb-2">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${loyaltyPct}%`, background: loyaltyColor }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span
+                className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+                style={{ background: loyaltyColor }}
+              >
+                {loyaltyLabel}
+              </span>
+              <span className="text-[10px] text-outline">
+                {votesWithPartyData.length} votes analyzed
+              </span>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-outline">
+            Party majority data not yet available for these votes.
+          </p>
+        )}
+      </div>
+
+      {/* Voting by Topic */}
+      <div className="rounded-xl border border-surface-container bg-white p-5 shadow-sm">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-outline mb-4">
+          Votes by Topic
+        </p>
+        {topicBreakdown.length > 0 ? (
+          <div className="space-y-3">
+            {topicBreakdown.map(([topic, data]) => {
+              const yesPct = Math.round((data.yes / data.total) * 100);
+              const noPct = Math.round((data.no / data.total) * 100);
+              return (
+                <div key={topic}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-on-surface">{topic}</span>
+                    <span className="text-xs text-outline">{data.total} vote{data.total !== 1 ? "s" : ""}</span>
+                  </div>
+                  <div className="flex h-2 w-full overflow-hidden rounded-full bg-surface-container">
+                    {yesPct > 0 && (
+                      <div
+                        className="h-full bg-green-500 transition-all duration-500"
+                        style={{ width: `${yesPct}%` }}
+                        title={`${yesPct}% Yes`}
+                      />
+                    )}
+                    {noPct > 0 && (
+                      <div
+                        className="h-full bg-red-400 transition-all duration-500"
+                        style={{ width: `${noPct}%` }}
+                        title={`${noPct}% No`}
+                      />
+                    )}
+                  </div>
+                  <div className="flex gap-3 mt-0.5 text-[10px] text-outline">
+                    <span>{yesPct}% Yea</span>
+                    <span>{noPct}% Nay</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-outline">
+            Topic breakdown requires votes on categorizable legislation.
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function EmptyCard({ text }: { text: string }) {
