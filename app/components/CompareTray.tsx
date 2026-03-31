@@ -17,25 +17,25 @@ export default function CompareTray() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed bottom-0 left-0 right-0 z-40 border-t border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-900"
+          className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#C5C6CF] bg-white shadow-lg"
         >
           <div className="container-content mx-auto px-6 py-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex-1 flex items-center gap-4 overflow-x-auto">
-                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+                <span className="text-sm font-medium text-[#191C1D] whitespace-nowrap">
                   Comparing:
                 </span>
                 {selected.map((politician) => (
                   <div
                     key={politician.id}
-                    className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-900/50"
+                    className="flex items-center gap-2 rounded-lg border border-[#C5C6CF] bg-[#F5F6FF] px-3 py-2"
                   >
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100 whitespace-nowrap">
+                    <span className="text-sm font-medium text-[#191C1D] whitespace-nowrap">
                       {politician.name || "Unknown Member"}
                     </span>
                     <button
                       onClick={() => removePolitician(politician.id)}
-                      className="text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                      className="text-[#75777F] hover:text-[#041534]"
                       aria-label={`Remove ${politician.name || "politician"} from comparison`}
                     >
                       <svg

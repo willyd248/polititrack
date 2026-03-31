@@ -31,7 +31,7 @@ export default function InfoTip({ content, className = "" }: InfoTipProps) {
         onClick={() => setIsOpen(!isOpen)}
         onMouseEnter={() => setIsOpen(true)}
         onMouseLeave={() => setIsOpen(false)}
-        className="inline-flex items-center justify-center rounded-full text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 transition-colors duration-200"
+        className="inline-flex items-center justify-center rounded-full text-[#75777F] hover:text-[#041534] transition-colors duration-200"
         aria-label="More information"
       >
         <svg
@@ -56,14 +56,14 @@ export default function InfoTip({ content, className = "" }: InfoTipProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -5 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-full left-1/2 mb-2 w-64 -translate-x-1/2 rounded-lg border border-zinc-200 bg-white p-3 text-xs shadow-lg dark:border-zinc-800 dark:bg-zinc-900 z-50"
+            className="absolute bottom-full left-1/2 mb-2 w-64 -translate-x-1/2 rounded-lg border border-[#C5C6CF] bg-white p-3 text-xs shadow-lg z-50"
           >
-            <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed">
+            <p className="text-[#191C1D]/80 leading-relaxed">
               {content}
             </p>
             {/* Arrow */}
             <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px">
-              <div className="h-2 w-2 rotate-45 border-r border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"></div>
+              <div className="h-2 w-2 rotate-45 border-r border-b border-[#C5C6CF] bg-white"></div>
             </div>
           </motion.div>
         )}

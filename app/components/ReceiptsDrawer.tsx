@@ -192,19 +192,19 @@ function ReceiptsDrawerContent() {
             animate={{ x: 0, y: 0 }}
             exit={{ x: "100%", y: "100%" }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed bottom-0 right-0 z-50 h-[85vh] w-full overflow-hidden rounded-t-2xl bg-white shadow-2xl dark:bg-zinc-900 md:bottom-auto md:top-0 md:h-full md:w-[480px] md:rounded-none md:rounded-l-2xl"
+            className="fixed bottom-0 right-0 z-50 h-[85vh] w-full overflow-hidden rounded-t-2xl bg-white shadow-2xl md:bottom-auto md:top-0 md:h-full md:w-[480px] md:rounded-none md:rounded-l-2xl"
             role="dialog"
             aria-modal="true"
             aria-labelledby="receipts-heading"
           >
             <div className="flex h-full flex-col">
               {/* Header */}
-              <div className="flex items-start justify-between border-b border-zinc-200 p-6 dark:border-zinc-800">
+              <div className="flex items-start justify-between border-b border-[#C5C6CF] p-6">
                 <div className="flex-1 pr-4">
                   <div className="flex items-center gap-2">
                     <h2
                       id="receipts-heading"
-                      className="text-xl font-semibold text-zinc-900 dark:text-zinc-100"
+                      className="text-xl font-semibold text-[#041534]"
                     >
                       {data.heading}
                     </h2>
@@ -213,7 +213,7 @@ function ReceiptsDrawerContent() {
                     />
                   </div>
                   {data.subheading && (
-                    <p className="mt-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+                    <p className="mt-1.5 text-sm text-[#75777F]">
                       {data.subheading}
                     </p>
                   )}
@@ -238,7 +238,7 @@ function ReceiptsDrawerContent() {
                         />
                       </svg>
                       {copied ? (
-                        <span className="text-xs text-green-600 dark:text-green-400">
+                        <span className="text-xs text-green-600">
                           Copied
                         </span>
                       ) : (
@@ -296,29 +296,29 @@ function ReceiptsDrawerContent() {
                   {data.sources.map((source, index) => (
                     <div
                       key={index}
-                      className="border-b border-zinc-200 pb-6 last:border-b-0 dark:border-zinc-800"
+                      className="border-b border-[#C5C6CF] pb-6 last:border-b-0"
                     >
-                      <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                      <h3 className="text-base font-semibold text-[#041534]">
                         {source.title}
                       </h3>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                      <div className="mt-2 flex items-center gap-2 text-xs text-[#75777F]">
                         <span>{source.publisher}</span>
                         <span>•</span>
                         <span>{source.date}</span>
                       </div>
-                      <p className="mt-3 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                      <p className="mt-3 text-sm leading-relaxed text-[#191C1D]/80">
                         {source.excerpt}
                       </p>
                       {source.url && (
                         <div className="mt-4 space-y-2">
-                          <span className="text-xs font-medium text-zinc-500 dark:text-zinc-500">
+                          <span className="text-xs font-medium text-[#75777F]">
                             Primary source
                           </span>
                           <a
                             href={source.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block text-sm font-medium text-zinc-900 transition-colors hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300"
+                            className="block text-sm font-medium text-[#041534] transition-colors hover:text-[#041534]/70"
                           >
                             <span className="inline-flex items-center gap-1.5">
                               {source.url}
@@ -367,7 +367,7 @@ function ReceiptsDrawerContent() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="fixed left-1/2 top-1/2 z-[60] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900"
+                  className="fixed left-1/2 top-1/2 z-[60] w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg border border-[#C5C6CF] bg-white shadow-2xl"
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="share-modal-heading"
@@ -377,7 +377,7 @@ function ReceiptsDrawerContent() {
                     <div className="mb-6 flex items-start justify-between">
                       <h3
                         id="share-modal-heading"
-                        className="text-lg font-semibold text-zinc-900 dark:text-zinc-100"
+                        className="text-lg font-semibold text-[#041534]"
                       >
                         Share Receipt Card
                       </h3>
@@ -404,28 +404,28 @@ function ReceiptsDrawerContent() {
                     </div>
 
                     {/* Receipt Card Preview */}
-                    <div className="mb-6 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
-                      <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                    <div className="mb-6 rounded-lg border border-[#C5C6CF] bg-[#F5F6FF] p-4">
+                      <h4 className="text-base font-semibold text-[#041534]">
                         {data.heading}
                       </h4>
                       {data.subheading && (
-                        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="mt-1 text-sm text-[#75777F]">
                           {data.subheading}
                         </p>
                       )}
                       <div className="mt-4 space-y-3">
                         {data.sources.slice(0, 2).map((source, index) => (
                           <div key={index}>
-                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            <p className="text-sm font-medium text-[#191C1D]">
                               {source.title}
                             </p>
-                            <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                            <p className="mt-0.5 text-xs text-[#75777F]">
                               {source.publisher} • {source.date}
                             </p>
                           </div>
                         ))}
                       </div>
-                      <p className="mt-4 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-500">
+                      <p className="mt-4 border-t border-[#C5C6CF] pt-3 text-xs text-[#75777F]">
                         Shared via Polititrack
                       </p>
                     </div>
@@ -452,7 +452,7 @@ function ReceiptsDrawerContent() {
                           />
                         </svg>
                         {linkCopied ? (
-                          <span className="text-xs text-green-600 dark:text-green-400">
+                          <span className="text-xs text-green-600">
                             Link copied
                           </span>
                         ) : (
