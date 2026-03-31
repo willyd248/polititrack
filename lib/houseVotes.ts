@@ -35,25 +35,10 @@
  */
 
 import { Vote, Source } from "../data/types";
-import { congressFetch } from "./congress";
 import { inferTopicFromText } from "./topicTagger";
 import { recordSourceStatus } from "./dataHealth";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-interface CongressVoteListResponse {
-  votes?: Array<{
-    rollNumber?: number;
-    startDate?: string;
-    updateDate?: string;
-    result?: string;
-    question?: string;
-    description?: string;
-    url?: string;
-    type?: string;
-  }>;
-  pagination?: { count: number; next?: string };
-}
 
 interface ParsedClerkVote {
   rollNumber: string;
@@ -161,34 +146,35 @@ function createHouseVoteSources(
 // ─── Data fetching ───────────────────────────────────────────────────────────
 
 /**
- * Fetch the vote list for one congress/session from the Congress.gov API v3.
- * Returns roll numbers with their start dates, sorted descending (most recent first).
- * Returns [] if the endpoint is unavailable or the API key is not set.
+ * Fetch the vote list for a given year from clerk.house.gov index page.
+ * Returns roll numbers in descending order (most recent first).
+ * Returns [] if the index page is unavailable.
  */
-async function fetchVoteListFromApi(
-  congress: number,
-  session: number,
+async function fetchVoteListFromClerk(
+  year: number,
   limit: number
 ): Promise<Array<{ rollNumber: string; date: string }>> {
   try {
-    const data = await congressFetch<CongressVoteListResponse>(
-      `/vote/${congress}/House/${session}`,
-      {
-        params: { limit, sort: "startDate desc", offset: 0 },
-        revalidate: 3600,
-      }
-    );
+    const url = `https://clerk.house.gov/evs/${year}/index.asp`;
+    const response = await fetch(url, {
+      next: { revalidate: 3600 },
+      headers: { Accept: "text/html, */*" },
+    });
 
-    if (!data.votes || data.votes.length === 0) return [];
+    if (!response.ok) return [];
 
-    return data.votes
-      .filter((v) => v.rollNumber != null && (v.startDate || v.updateDate))
-      .map((v) => ({
-        rollNumber: String(v.rollNumber!),
-        date: (v.startDate ?? v.updateDate ?? "").slice(0, 10),
-      }));
+    const html = await response.text();
+
+    // Extract roll numbers from links like: rollnumber=108
+    const matches = [...html.matchAll(/rollnumber=(\d+)/g)];
+    const rollNumbers = [...new Set(matches.map((m) => m[1]))]
+      .map(Number)
+      .sort((a, b) => b - a) // descending
+      .slice(0, limit)
+      .map((n) => ({ rollNumber: String(n), date: "" }));
+
+    return rollNumbers;
   } catch {
-    // Endpoint may not yet be populated, API key missing, or 404 — not fatal.
     return [];
   }
 }
@@ -274,13 +260,14 @@ export async function fetchHouseMemberVotes(
     if (sessions.length === 0) return [];
 
     // Collect candidate roll numbers from all active sessions (most recent first)
+    // Use clerk.house.gov index pages since Congress.gov API v3 lacks this endpoint
     const candidates: Array<{ rollNumber: string; year: number; date: string }> =
       [];
 
-    for (const { session, year } of sessions) {
+    for (const { year } of sessions) {
       if (candidates.length >= limit * 4) break; // enough to find `limit` member votes
 
-      const list = await fetchVoteListFromApi(congress, session, limit * 4);
+      const list = await fetchVoteListFromClerk(year, limit * 4);
 
       for (const v of list) {
         candidates.push({ rollNumber: v.rollNumber, year, date: v.date });
