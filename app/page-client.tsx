@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { MemberPhoto } from "./components/MemberPhoto";
 import { Politician } from "../data/politicians";
 import { Member } from "../data/types-members";
 import { Bill } from "../data/bills";
@@ -109,7 +110,7 @@ export default function HomeClient({
     <div>
       {/* ── HERO ───────────────────────────────────────────────────────────── */}
       <div style={{ background: "#041534" }} className="px-4 py-12 sm:py-16 sm:px-6">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-6xl">
           <p className="text-xs font-semibold uppercase tracking-widest text-blue-200/50 mb-4">
             119th Congress · Nonpartisan · Source-cited
           </p>
@@ -170,12 +171,14 @@ export default function HomeClient({
                         href={`/politician/${m.bioguideId}`}
                         className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 p-4 hover:bg-white/15 transition-all flex-1"
                       >
-                        <div
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                          style={{ background: partyColor(party) }}
-                        >
-                          {(m.fullName || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("")}
-                        </div>
+                        <MemberPhoto
+                          bioguideId={m.bioguideId}
+                          name={m.fullName || "?"}
+                          size={40}
+                          className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full"
+                          fallbackClassName="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                          fallbackStyle={{ background: partyColor(party) }}
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-semibold text-white truncate">{m.fullName}</p>
                           <p className="text-xs text-blue-100/60">
@@ -194,7 +197,7 @@ export default function HomeClient({
       </div>
 
       {/* ── PAGE CONTENT ───────────────────────────────────────────────────── */}
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 py-10 space-y-12">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 space-y-12">
 
         {/* ── FOLLOWING ─────────────────────────────────────────────────── */}
         {(savedPoliticians.length > 0 || savedBills.length > 0) && (
@@ -311,7 +314,7 @@ export default function HomeClient({
           </div>
 
           {displayMembers.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {displayMembers.slice(0, 12).map((m) => {
                 const pol    = memberToPolitician(m);
                 const party  = m.party ?? "";
@@ -322,12 +325,14 @@ export default function HomeClient({
                     className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-all"
                   >
                     <div className="flex items-start gap-3 mb-3">
-                      <div
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                        style={{ background: partyColor(party) }}
-                      >
-                        {(m.fullName || "?").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("")}
-                      </div>
+                      <MemberPhoto
+                        bioguideId={m.bioguideId}
+                        name={m.fullName || "?"}
+                        size={40}
+                        className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full"
+                        fallbackClassName="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                        fallbackStyle={{ background: partyColor(party) }}
+                      />
                       <div className="min-w-0 flex-1">
                         <Link
                           href={`/politician/${m.bioguideId}`}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useCompare } from "../store/compare-store";
 import Link from "next/link";
+import { MemberPhoto } from "../components/MemberPhoto";
 
 function partyColor(role: string): string {
   if (role === "D") return "#1B2A4A";
@@ -94,12 +95,14 @@ export default function ComparePage() {
 
           {selected.length === 1 && (
             <div className="mb-8 flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-5 py-4">
-              <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                style={{ background: partyColor(selected[0].role || "") }}
-              >
-                {initials(selected[0].name || "?")}
-              </div>
+              <MemberPhoto
+                bioguideId={selected[0].id}
+                name={selected[0].name || "?"}
+                size={40}
+                className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full"
+                fallbackClassName="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                fallbackStyle={{ background: partyColor(selected[0].role || "") }}
+              />
               <div className="text-left">
                 <p className="text-sm font-semibold text-white">{selected[0].name}</p>
                 <p className="text-xs text-blue-100/60">
@@ -184,12 +187,14 @@ export default function ComparePage() {
           ].map(({ p, s }) => (
             <div key={p.id} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
-                <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-bold text-white"
-                  style={{ background: partyColor(p.role || "") }}
-                >
-                  {initials(p.name || "?")}
-                </div>
+                <MemberPhoto
+                  bioguideId={p.id}
+                  name={p.name || "?"}
+                  size={48}
+                  className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full"
+                  fallbackClassName="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-base font-bold text-white"
+                  fallbackStyle={{ background: partyColor(p.role || "") }}
+                />
                 <div>
                   <h2 className="text-base font-bold text-gray-900">{p.name || "Unknown"}</h2>
                   <p className="text-xs text-gray-500 mt-0.5">
