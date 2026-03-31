@@ -8,6 +8,7 @@ import { MoneyModule } from "../../../lib/mappers/fecToMoney";
 import { LegislativeActivityItem } from "../../../lib/congressSponsorship";
 import { Statement, Vote } from "../../../data/types";
 import Link from "next/link";
+import { MemberPhoto } from "../../components/MemberPhoto";
 import { useReceipts } from "../../store/receipts-store";
 import { useCompare } from "../../store/compare-store";
 import { useSaved } from "../../store/saved-store";
@@ -265,7 +266,7 @@ export default function PoliticianPageClient({
 
         {/* ── HERO ──────────────────────────────────────────────────────────── */}
         <div style={{ background: "#041534" }}>
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 pt-8 pb-0">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6 pt-8 pb-0">
 
             {/* Breadcrumb */}
             <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-blue-200/50">
@@ -276,13 +277,15 @@ export default function PoliticianPageClient({
             {/* Identity row */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="flex items-center gap-4">
-                {/* Initials avatar */}
-                <div
-                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold text-white ring-2 ring-white/20"
-                  style={{ background: partyColor(displayParty) }}
-                >
-                  {displayName.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("")}
-                </div>
+                {/* Photo */}
+                <MemberPhoto
+                  bioguideId={member?.bioguideId || ""}
+                  name={displayName}
+                  size={64}
+                  className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full ring-2 ring-white/20"
+                  fallbackClassName="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold text-white ring-2 ring-white/20"
+                  fallbackStyle={{ background: partyColor(displayParty) }}
+                />
 
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
@@ -379,7 +382,7 @@ export default function PoliticianPageClient({
         </div>
 
         {/* ── PAGE CONTENT ─────────────────────────────────────────────────── */}
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 space-y-10">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 py-8 space-y-10">
 
           {/* ── FOLLOW THE MONEY ──────────────────────────────────────────── */}
           <section id="follow-money" className="scroll-mt-20">

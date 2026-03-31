@@ -9,6 +9,7 @@ import Chip from "../../components/ui/Chip";
 import Disclosure from "../../components/ui/Disclosure";
 import InlineCitation from "../../components/ui/InlineCitation";
 import Link from "next/link";
+import { MemberPhoto } from "../../components/MemberPhoto";
 import { useReceipts } from "../../store/receipts-store";
 import { useTopicLens } from "../../store/topic-lens-store";
 import { useSaved } from "../../store/saved-store";
@@ -239,11 +240,15 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
                     className="block rounded-lg border border-[#EDEEEF] p-4 transition-colors hover:bg-[#F8F9FA] hover:border-[#C5C6CF]"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#041534] text-sm font-bold text-white">
-                        {bill.sponsor.name.charAt(0)}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-[#041534]">
+                      <MemberPhoto
+                        bioguideId={bill.sponsor.bioguideId}
+                        name={bill.sponsor.name}
+                        size={36}
+                        className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full"
+                        fallbackClassName="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EDEEEF] text-xs font-bold text-[#75777F]"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-[#041534]">
                           {bill.sponsor.name}
                         </p>
                         {(bill.sponsor.party || bill.sponsor.state) && (
@@ -252,9 +257,18 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
                           </p>
                         )}
                       </div>
-                      <span className="text-xs text-[#75777F]">View profile</span>
-                      <svg className="h-4 w-4 text-[#C5C6CF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      <svg
+                        className="h-4 w-4 shrink-0 text-[#C5C6CF]"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
                       </svg>
                     </div>
                   </Link>
@@ -277,22 +291,36 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
                         href={`/politician/${cosponsor.bioguideId}`}
                         className="block rounded p-2.5 transition-colors hover:bg-[#F8F9FA]"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#EDEEEF] text-xs font-medium text-[#041534]">
-                              {cosponsor.name.charAt(0)}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-[#041534]">{cosponsor.name}</p>
-                              {(cosponsor.party || cosponsor.state) && (
-                                <p className="text-xs text-[#75777F]">
-                                  {[cosponsor.party, cosponsor.state].filter(Boolean).join(" · ")}
-                                </p>
-                              )}
-                            </div>
+                        <div className="flex items-center gap-3">
+                          <MemberPhoto
+                            bioguideId={cosponsor.bioguideId}
+                            name={cosponsor.name}
+                            size={36}
+                            className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full"
+                            fallbackClassName="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#EDEEEF] text-xs font-bold text-[#75777F]"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-[#041534]">
+                              {cosponsor.name}
+                            </p>
+                            {(cosponsor.party || cosponsor.state) && (
+                              <p className="mt-0.5 text-xs text-[#75777F]">
+                                {[cosponsor.party, cosponsor.state].filter(Boolean).join(" · ")}
+                              </p>
+                            )}
                           </div>
-                          <svg className="h-4 w-4 text-[#C5C6CF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          <svg
+                            className="h-4 w-4 shrink-0 text-[#C5C6CF]"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
                           </svg>
                         </div>
                       </Link>

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Member } from "../../data/types-members";
+import { MemberPhoto } from "./MemberPhoto";
 import { useCompare } from "../store/compare-store";
 import { memberToPolitician } from "../../lib/mappers/memberToPolitician";
 
@@ -89,7 +89,7 @@ export default function MemberPlayerCards({ members }: MemberPlayerCardsProps) {
       </div>
 
       {/* Member Cards Grid */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {visibleMembers.map((member) => {
           const politician = memberToPolitician(member);
           const isSelectedMember = isSelected(politician.id);
@@ -108,25 +108,13 @@ export default function MemberPlayerCards({ members }: MemberPlayerCardsProps) {
                 <div className="p-4">
                   {/* Photo */}
                   <div className="mb-3 flex justify-center">
-                    {member.imageUrl ? (
-                      <div className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-[#C5C6CF]">
-                        <Image
-                          src={member.imageUrl}
-                          alt={member.fullName}
-                          fill
-                          sizes="80px"
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-[#C5C6CF] bg-[#EDEEEF] text-sm font-bold text-[#75777F]">
-                        {member.fullName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)}
-                      </div>
-                    )}
+                    <MemberPhoto
+                      bioguideId={member.bioguideId}
+                      name={member.fullName}
+                      size={80}
+                      className="relative h-20 w-20 overflow-hidden rounded-full border-2 border-[#C5C6CF]"
+                      fallbackClassName="flex h-20 w-20 items-center justify-center rounded-full border-2 border-[#C5C6CF] bg-[#EDEEEF] text-sm font-bold text-[#75777F]"
+                    />
                   </div>
 
                   {/* Name */}
