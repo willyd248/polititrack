@@ -314,6 +314,7 @@ export default function HomeClient({
           </div>
 
           {displayMembers.length > 0 ? (
+            <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {displayMembers.slice(0, 12).map((m) => {
                 const pol    = memberToPolitician(m);
@@ -375,9 +376,26 @@ export default function HomeClient({
                 );
               })}
             </div>
+            <div className="mt-6 text-center">
+              <Link
+                href="/members"
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-[#041534] shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+              >
+                View All {displayMembers.length > 12 ? `${displayMembers.length} ` : ""}Members
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
+            </div>
+            </>
           ) : (
-            <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center">
-              <p className="text-sm text-gray-400">No members available. Check back soon.</p>
+            <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center space-y-4">
+              <p className="text-sm text-gray-400">Member data is loading from Congress.gov. Browse all members on the full directory.</p>
+              <Link
+                href="/members"
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-[#041534] shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+              >
+                View All Members
+                <span aria-hidden="true">&rarr;</span>
+              </Link>
             </div>
           )}
         </section>

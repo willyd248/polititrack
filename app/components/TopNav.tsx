@@ -52,6 +52,12 @@ export default function TopNav() {
               PolitiTrack
             </Link>
             <Link
+              href="/members"
+              className="hidden md:block text-sm font-medium text-white/70 no-underline transition-colors duration-200 hover:text-white"
+            >
+              Members
+            </Link>
+            <Link
               href="/compare"
               className="hidden md:block text-sm font-medium text-white/70 no-underline transition-colors duration-200 hover:text-white"
             >
@@ -158,6 +164,13 @@ export default function TopNav() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-white/10 py-2">
             <div className="flex flex-col gap-1">
+              <Link
+                href="/members"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block px-4 py-2 text-sm font-medium text-white/70 no-underline transition-colors duration-200 hover:text-white hover:bg-white/10 rounded"
+              >
+                Members
+              </Link>
               <Link
                 href="/compare"
                 onClick={() => setMobileMenuOpen(false)}
