@@ -93,15 +93,18 @@ export default function HomeClient({
     setDistrictInfo(lookup);
     if (displayMembers.length > 0) {
       const filtered: Member[] = [];
+      // m.state may be a full name ("New York") or code ("NY") — normalize both sides
+      const stateMatches = (memberState: string) =>
+        memberState === lookup.state || stateNameToCode(memberState) === lookup.state;
       if (lookup.district) {
         const rep = displayMembers.find(
           (m) =>
-            m.chamber === "House" && m.state === lookup.state && m.district === lookup.district
+            m.chamber === "House" && stateMatches(m.state) && m.district === lookup.district
         );
         if (rep) filtered.push(rep);
       }
       filtered.push(
-        ...displayMembers.filter((m) => m.chamber === "Senate" && m.state === lookup.state)
+        ...displayMembers.filter((m) => m.chamber === "Senate" && stateMatches(m.state))
       );
       setDistrictMembers(filtered);
     }
