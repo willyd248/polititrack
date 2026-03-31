@@ -415,7 +415,7 @@ export function mapCongressBillToBill(congressBill: CongressBill): Bill {
         .map((s) => s.trim() + (s.trim().endsWith(".") ? "" : "."))
     : [
         `This bill was introduced in the ${congress}th Congress.`,
-        "Detailed summary information is being processed.",
+        "No official summary available from Congress.gov yet.",
       ];
 
   const status = mapStatus(congressBill);
@@ -505,7 +505,7 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
           .map((s) => s.trim() + (s.trim().endsWith(".") ? "" : "."))
       : [
           `This bill was introduced in the ${congress}th Congress.`,
-          "Detailed summary information is being processed.",
+          "No official summary available from Congress.gov yet.",
         ];
 
     // --- Actions / Timeline ---
