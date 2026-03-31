@@ -13,6 +13,9 @@ import ReceiptsDrawer from "./components/ReceiptsDrawer";
 import CommandPalette from "./components/CommandPalette";
 import ReadingModeWrapper from "./components/ReadingModeWrapper";
 import { Analytics } from "@vercel/analytics/react";
+import { PostHogProvider } from "./components/PostHogProvider";
+import { PostHogPageview } from "./components/PostHogPageview";
+import { Suspense } from "react";
 
 const epilogue = Epilogue({
   variable: "--font-epilogue",
@@ -69,6 +72,10 @@ export default function RootLayout({
         className={`${epilogue.variable} ${publicSans.variable} antialiased`}
         style={{ backgroundColor: "#F8F9FA" }}
       >
+        <PostHogProvider>
+        <Suspense fallback={null}>
+          <PostHogPageview />
+        </Suspense>
         <ReadingModeProvider>
           <TopicLensProvider>
             <CommandPaletteProvider>
@@ -116,6 +123,7 @@ export default function RootLayout({
           </TopicLensProvider>
         </ReadingModeProvider>
         <Analytics />
+        </PostHogProvider>
       </body>
     </html>
   );
