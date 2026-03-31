@@ -174,7 +174,7 @@ async function fetchVoteListFromApi(
     const data = await congressFetch<CongressVoteListResponse>(
       `/vote/${congress}/House/${session}`,
       {
-        params: { limit, sort: "startDate+desc", offset: 0 },
+        params: { limit, sort: "startDate desc", offset: 0 },
         revalidate: 3600,
       }
     );

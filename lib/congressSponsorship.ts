@@ -114,12 +114,12 @@ export async function fetchSponsoredBills(
         params: {
           congress: congress,
           limit: limit,
-          sort: "updateDate+desc", // Most recently updated first
+          sort: "updateDate desc", // Most recently updated first
         },
         revalidate: 3600, // 1 hour cache
       }
     );
-    
+
     // Handle different response structures
     // Congress.gov API v3 returns:
     // - response.sponsoredLegislation as an array directly (not nested under .bills)
@@ -140,7 +140,7 @@ export async function fetchSponsoredBills(
     }
     
     if (bills.length === 0) {
-      recordSourceStatus("congress", true, `No sponsored legislation found for ${bioguideId} in 118th Congress.`);
+      recordSourceStatus("congress", true, `No sponsored legislation found for ${bioguideId} in 119th Congress.`);
       return [];
     }
     
@@ -197,12 +197,12 @@ export async function fetchCosponsoredBills(
         params: {
           congress: congress,
           limit: limit,
-          sort: "updateDate+desc", // Most recently updated first
+          sort: "updateDate desc", // Most recently updated first
         },
         revalidate: 3600, // 1 hour cache
       }
     );
-    
+
     // Handle different response structures
     // Congress.gov API v3 returns:
     // - response.cosponsoredLegislation as an array directly (not nested under .bills)
@@ -226,7 +226,7 @@ export async function fetchCosponsoredBills(
     }
     
     if (bills.length === 0) {
-      recordSourceStatus("congress", true, `No cosponsored legislation found for ${bioguideId} in 118th Congress.`);
+      recordSourceStatus("congress", true, `No cosponsored legislation found for ${bioguideId} in 119th Congress.`);
       return [];
     }
     

@@ -1,7 +1,7 @@
 # PolitiTrack — Project State
 
-**Last updated:** 2026-03-24
-**Version:** v1.1
+**Last updated:** 2026-03-30
+**Version:** v1.2
 **Status:** Deployed to production, core flows working
 **Live URL:** https://polititrack-chi.vercel.app
 **Repo:** https://github.com/willyd248/polititrack
@@ -29,13 +29,23 @@
 | House votes always empty (no API endpoint) | #14 | High |
 | ZIP code dataset too limited | #15 | Medium |
 | Compare page needs standalone search | #16 | Medium |
-| Stitch design not applied to profile/bill/compare pages | #17 | Medium |
 | Member photos may not load (needs verification) | #18 | Medium |
 | Mission/about page content | #19 | Low |
 | ChamberFloor visualization missing from home | #20 | Medium |
-| Dark mode broken by redesign | #21 | Low |
-| Search results link to profile (works now) | #22 | Closed by #11 fix |
 | Data freshness indicators | #23 | Low |
+
+## Fixed in v1.2 (2026-03-30)
+
+| Fix | Impact |
+|-----|--------|
+| Sort param `+` double-encoded as `%2B` via URLSearchParams | **Critical** — bills, sponsored/cosponsored bills, house votes were not sorted and may have returned 400/empty |
+| `keyTakeaways` third bullet showing literal `"H"` or `"S"` | Profile page data bug |
+| Role stat box showing `"H"` / `"S"` instead of "House" / "Senate" | Profile header data bug |
+| All `118th Congress` references updated to `119th Congress` | Stale data labels |
+| Politician profile page zinc/dark-mode classes → design system colors | Visual consistency |
+| Bill page header stacks vertically on mobile | Mobile UX |
+| Key Metrics 3-col grid → `grid-cols-2 sm:grid-cols-3` | Mobile UX |
+| Added `loading.tsx` skeleton for politician and bill pages | UX — no blank flash during SSR |
 
 ## Architecture
 

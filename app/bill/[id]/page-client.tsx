@@ -78,10 +78,10 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
     <div className="space-y-12">
       {/* Topic Lens Banner */}
       {selectedTopic && (
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+        <div className="rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-zinc-700 dark:text-zinc-300">
-              Viewing through topic: <span className="font-semibold">{selectedTopic}</span>
+            <p className="text-sm text-[#191C1D]/80">
+              Viewing through topic: <span className="font-semibold text-[#041534]">{selectedTopic}</span>
             </p>
           </div>
         </div>
@@ -89,14 +89,14 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
 
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex-1">
-            <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            <h1 className="font-headline text-2xl sm:text-3xl font-bold text-[#041534] leading-tight">
               {bill.name}
             </h1>
             {useMockData && (
-              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
-                Mock data
+              <p className="mt-2 text-xs text-[#75777F]">
+                Sample data
               </p>
             )}
           </div>
@@ -123,12 +123,12 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
               {isBillSaved(bill.id) ? "Following" : "Follow"}
             </Button>
             <span
-              className={`rounded-full px-4 py-2 text-sm font-medium ${
+              className={`badge ${
                 bill.status === "Passed"
-                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                  ? "badge-passed"
                   : bill.status === "Failed"
-                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                  : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                  ? "badge-failed"
+                  : "badge-pending"
               }`}
             >
               {bill.status}
@@ -143,7 +143,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
         {(bill.sponsor || (bill.cosponsors && bill.cosponsors.length > 0)) && (
           <Card>
             <div className="mb-4 flex items-start justify-between">
-              <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+              <h2 className="font-headline text-xl font-bold text-[#041534]">
                 People
               </h2>
               {bill.sponsorSources && bill.sponsorSources.length > 0 && (
@@ -162,26 +162,24 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
               {/* Sponsor */}
               {bill.sponsor && (
                 <div>
-                  <h3 className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                    Sponsor
-                  </h3>
+                  <h3 className="mb-2 stat-label">Sponsor</h3>
                   <Link
                     href={`/politician/${bill.sponsor.bioguideId}`}
-                    className="block rounded-md p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                    className="block rounded p-3 transition-colors hover:bg-[#F8F9FA]"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        <p className="text-sm font-medium text-[#041534]">
                           {bill.sponsor.name}
                         </p>
                         {(bill.sponsor.party || bill.sponsor.state) && (
-                          <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-                            {[bill.sponsor.party, bill.sponsor.state].filter(Boolean).join(" • ")}
+                          <p className="mt-0.5 text-xs text-[#75777F]">
+                            {[bill.sponsor.party, bill.sponsor.state].filter(Boolean).join(" · ")}
                           </p>
                         )}
                       </div>
                       <svg
-                        className="h-4 w-4 text-zinc-400"
+                        className="h-4 w-4 text-[#C5C6CF]"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -201,7 +199,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
               {/* Cosponsors */}
               {bill.cosponsors && bill.cosponsors.length > 0 && (
                 <div>
-                  <h3 className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                  <h3 className="mb-2 stat-label">
                     Cosponsors {bill.cosponsors.length > 0 && `(${bill.cosponsors.length})`}
                   </h3>
                   <div className="space-y-2">
@@ -209,21 +207,21 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
                       <Link
                         key={cosponsor.bioguideId}
                         href={`/politician/${cosponsor.bioguideId}`}
-                        className="block rounded-md p-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                        className="block rounded p-3 transition-colors hover:bg-[#F8F9FA]"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            <p className="text-sm font-medium text-[#041534]">
                               {cosponsor.name}
                             </p>
                             {(cosponsor.party || cosponsor.state) && (
-                              <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
-                                {[cosponsor.party, cosponsor.state].filter(Boolean).join(" • ")}
+                              <p className="mt-0.5 text-xs text-[#75777F]">
+                                {[cosponsor.party, cosponsor.state].filter(Boolean).join(" · ")}
                               </p>
                             )}
                           </div>
                           <svg
-                            className="h-4 w-4 text-zinc-400"
+                            className="h-4 w-4 text-[#C5C6CF]"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -248,7 +246,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
         {/* 1-Minute Summary */}
         <Card>
           <div className="mb-4 flex items-start justify-between">
-            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="font-headline text-xl font-bold text-[#041534]">
               1-Minute Summary
             </h2>
             <Button variant="ghost" size="sm" onClick={handleSummaryReceipts}>
@@ -259,9 +257,9 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
             {bill.summary.map((point, index) => (
               <li
                 key={index}
-                className="flex items-start gap-3 text-zinc-700 dark:text-zinc-300"
+                className="flex items-start gap-3 text-[#191C1D]/80"
               >
-                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-zinc-400"></span>
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#C5C6CF]"></span>
                 <span>{point}</span>
               </li>
             ))}
@@ -271,7 +269,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
         {/* What Changes for Most People */}
         <Card>
           <div className="mb-4 flex items-start justify-between gap-3">
-            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+            <h2 className="font-headline text-xl font-bold text-[#041534]">
               What Changes for Most People
             </h2>
             <InlineCitation
@@ -302,9 +300,9 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
             {bill.whatChangesForMostPeople.map((change, index) => (
               <li
                 key={index}
-                className="flex items-start gap-3 text-zinc-700 dark:text-zinc-300"
+                className="flex items-start gap-3 text-[#191C1D]/80"
               >
-                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-zinc-400"></span>
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#C5C6CF]"></span>
                 <span>{change}</span>
               </li>
             ))}
@@ -313,7 +311,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
 
         {/* Who is Likely Impacted */}
         <Card>
-          <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="mb-4 font-headline text-xl font-bold text-[#041534]">
             Who is Likely Impacted
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -328,14 +326,14 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
       <div className="grid gap-6 md:grid-cols-2">
         {/* Arguments For */}
         <Card>
-          <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="mb-4 font-headline text-xl font-bold text-[#041534]">
             Arguments For
           </h2>
           <ul className="space-y-3">
             {bill.argumentsFor.map((argument, index) => (
               <li
                 key={index}
-                className="flex items-start gap-3 text-zinc-700 dark:text-zinc-300"
+                className="flex items-start gap-3 text-[#191C1D]/80"
               >
                 <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-green-500"></span>
                 <span>{argument}</span>
@@ -346,14 +344,14 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
 
         {/* Arguments Against */}
         <Card>
-          <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+          <h2 className="mb-4 font-headline text-xl font-bold text-[#041534]">
             Arguments Against
           </h2>
           <ul className="space-y-3">
             {bill.argumentsAgainst.map((argument, index) => (
               <li
                 key={index}
-                className="flex items-start gap-3 text-zinc-700 dark:text-zinc-300"
+                className="flex items-start gap-3 text-[#191C1D]/80"
               >
                 <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-red-500"></span>
                 <span>{argument}</span>
@@ -365,26 +363,26 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
 
       {/* Status & Next Steps */}
       <Card>
-        <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-4 font-headline text-xl font-bold text-[#041534]">
           Status & Next Steps
         </h2>
         <div className="space-y-3">
           {bill.statusAndNextSteps.map((step, index) => (
             <div
               key={index}
-              className="flex items-start gap-3 border-b border-zinc-200 pb-3 last:border-b-0 dark:border-zinc-800"
+              className="flex items-start gap-3 border-b border-[#C5C6CF] pb-3 last:border-b-0"
             >
               <div className="flex-shrink-0">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EDEEEF] text-xs font-semibold text-[#041534]">
                   {index + 1}
                 </div>
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                <p className="text-sm font-medium text-[#191C1D]">
                   {step.step}
                 </p>
                 {step.date && (
-                  <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+                  <p className="mt-1 text-xs text-[#75777F]">
                     {step.date}
                   </p>
                 )}
@@ -396,12 +394,12 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
 
       {/* Timeline */}
       <Card>
-        <h2 className="mb-6 text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+        <h2 className="mb-6 font-headline text-xl font-bold text-[#041534]">
           Timeline
         </h2>
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-zinc-200 dark:bg-zinc-800"></div>
+          <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-[#C5C6CF]"></div>
 
           <div className="space-y-0">
             {bill.timeline.map((event) => {
@@ -410,15 +408,15 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
                 <div
                   key={event.id}
                   className={`relative pl-12 pb-6 last:pb-0 ${
-                    isHighlighted ? "border-l-4 border-l-zinc-900 dark:border-l-zinc-100 pl-10" : ""
+                    isHighlighted ? "border-l-4 border-l-[#041534] pl-10" : ""
                   }`}
                 >
                   {/* Timeline dot */}
                   <div
-                    className={`absolute left-4 top-1.5 h-3 w-3 rounded-full border-2 border-white dark:border-zinc-900 ${
+                    className={`absolute left-4 top-1.5 h-3 w-3 rounded-full border-2 border-white ${
                       isHighlighted
-                        ? "bg-zinc-900 dark:bg-zinc-100"
-                        : "bg-zinc-400 dark:bg-zinc-600"
+                        ? "bg-[#041534]"
+                        : "bg-[#C5C6CF]"
                     }`}
                   ></div>
 
@@ -426,9 +424,9 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
                   <Disclosure
                     title={
                       <div className="flex items-start justify-between gap-4">
-                        <div className={`flex-1 ${isHighlighted ? "bg-zinc-50/50 dark:bg-zinc-900/30 -m-2 p-2 rounded" : ""}`}>
+                        <div className={`flex-1 ${isHighlighted ? "bg-[#F8F9FA] -m-2 p-2 rounded" : ""}`}>
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            <p className="text-sm font-medium text-[#191C1D]">
                               {event.title}
                             </p>
                             {/* Add citation to first timeline event only */}
@@ -444,11 +442,11 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-1">
-                            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                            <p className="text-xs text-[#75777F]">
                               {event.date}
                             </p>
                             {isHighlighted && (
-                              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                              <span className="text-xs font-medium text-[#191C1D]/80">
                                 • {selectedTopic}
                               </span>
                             )}
@@ -459,7 +457,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
                   >
                     <div className="space-y-3 pt-2">
                       {event.details && (
-                        <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                        <p className="text-sm leading-relaxed text-[#191C1D]/80">
                           {event.details}
                         </p>
                       )}
@@ -490,7 +488,16 @@ export default function BillPageClient({
   useMockData?: boolean;
 }) {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={
+      <div className="space-y-6 animate-pulse">
+        <div className="h-8 w-2/3 rounded bg-[#EDEEEF]" />
+        <div className="h-4 w-1/3 rounded bg-[#EDEEEF]" />
+        <div className="card p-6 space-y-3">
+          <div className="h-4 w-full rounded bg-[#EDEEEF]" />
+          <div className="h-4 w-5/6 rounded bg-[#EDEEEF]" />
+        </div>
+      </div>
+    }>
       <BillPageContent bill={bill} useMockData={useMockData} />
     </Suspense>
   );

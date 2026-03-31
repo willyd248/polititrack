@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { promises as fs } from "fs";
+import { Resend } from "resend";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Emails are stored in /tmp/subscribers.json (ephemeral on Vercel).
-// Replace with Resend audience or DB insert when ready.
-const SUBSCRIBERS_FILE = "/tmp/polititrack_subscribers.json";
 
 export async function POST(req: NextRequest) {
   let body: { email?: unknown };
@@ -20,25 +16,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
   }
 
-  // Persist to /tmp (ephemeral) and log so emails appear in Vercel function logs
+  const apiKey = process.env.RESEND_API_KEY;
+  const audienceId = process.env.RESEND_AUDIENCE_ID;
+
+  if (!apiKey || !audienceId) {
+    // Env vars not set — log so signups appear in Vercel function logs
+    console.log(`[PolitiTrack] Newsletter signup (no Resend config): ${email}`);
+    return NextResponse.json({ ok: true });
+  }
+
   try {
-    let existing: string[] = [];
-    try {
-      const raw = await fs.readFile(SUBSCRIBERS_FILE, "utf-8");
-      existing = JSON.parse(raw);
-    } catch {
-      // File doesn't exist yet — start fresh
-    }
-
-    if (!existing.includes(email)) {
-      existing.push(email);
-      await fs.writeFile(SUBSCRIBERS_FILE, JSON.stringify(existing, null, 2));
-    }
-
-    console.log(`[PolitiTrack] Newsletter signup: ${email}`);
+    const resend = new Resend(apiKey);
+    await resend.contacts.create({
+      email,
+      audienceId,
+      unsubscribed: false,
+    });
+    console.log(`[PolitiTrack] Newsletter signup stored in Resend: ${email}`);
   } catch (err) {
-    console.error("[PolitiTrack] Failed to save subscriber:", err);
-    // Don't surface storage errors to the user — the intent was captured in logs
+    // Log but don't surface storage errors to the user
+    console.error("[PolitiTrack] Failed to save subscriber to Resend:", err);
   }
 
   return NextResponse.json({ ok: true });

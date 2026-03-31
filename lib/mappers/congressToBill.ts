@@ -425,7 +425,7 @@ export async function fetchBills(limit: number = 10): Promise<Bill[]> {
       {
         params: {
           limit,
-          sort: "updateDate+desc", // Most recently updated first
+          sort: "updateDate desc", // Most recently updated first
         },
         revalidate: 1800, // 30 minutes
       }

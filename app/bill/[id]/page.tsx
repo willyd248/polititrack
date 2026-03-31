@@ -41,7 +41,17 @@ export default async function BillPage({
   }
   
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={
+      <div className="space-y-6 animate-pulse">
+        <div className="h-8 w-2/3 rounded bg-[#EDEEEF]" />
+        <div className="h-4 w-1/3 rounded bg-[#EDEEEF]" />
+        <div className="card p-6 space-y-3">
+          <div className="h-4 w-full rounded bg-[#EDEEEF]" />
+          <div className="h-4 w-5/6 rounded bg-[#EDEEEF]" />
+          <div className="h-4 w-4/6 rounded bg-[#EDEEEF]" />
+        </div>
+      </div>
+    }>
       <BillPageClient bill={bill} useMockData={useMockData} />
     </Suspense>
   );

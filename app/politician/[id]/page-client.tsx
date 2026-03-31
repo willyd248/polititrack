@@ -108,9 +108,9 @@ export default function PoliticianPageClient({
     ? [
         `${member.fullName || "This member"} represents ${stateNameToCode(member.state || "N/A")}${member.chamber === "House" && member.district ? `, D${member.district}` : ""}`,
         `Party: ${member.party || "N/A"}`,
-        member.chamber === "House" 
-          ? "H"
-          : "S",
+        member.chamber === "House"
+          ? "Member of the U.S. House of Representatives"
+          : "Member of the U.S. Senate",
       ]
     : politician.keyTakeaways;
 
@@ -414,29 +414,29 @@ export default function PoliticianPageClient({
   return (
     <div className="relative">
       {/* Desktop Sidebar Navigation */}
-      <aside className="hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] w-40 border-r border-zinc-200 bg-zinc-50/50 dark:border-zinc-800 dark:bg-zinc-950/50">
+      <aside className="hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] w-40 border-r border-[#C5C6CF] bg-[#F8F9FA]">
         <nav className="sticky top-24 p-4 space-y-1">
           <button
             onClick={() => scrollToSection("overview")}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-md transition-all duration-200 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-900"
+            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#75777F] hover:text-[#191C1D] hover:bg-[#EDEEEF] rounded-md transition-all duration-200"
           >
             Overview
           </button>
           <button
             onClick={() => scrollToSection("money")}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-md transition-all duration-200 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-900"
+            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#75777F] hover:text-[#191C1D] hover:bg-[#EDEEEF] rounded-md transition-all duration-200"
           >
             Money
           </button>
           <button
             onClick={() => scrollToSection("votes")}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-md transition-all duration-200 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-900"
+            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#75777F] hover:text-[#191C1D] hover:bg-[#EDEEEF] rounded-md transition-all duration-200"
           >
             Votes
           </button>
           <button
             onClick={() => scrollToSection("statements")}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-md transition-all duration-200 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-900"
+            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#75777F] hover:text-[#191C1D] hover:bg-[#EDEEEF] rounded-md transition-all duration-200"
           >
             Statements
           </button>
@@ -484,9 +484,9 @@ export default function PoliticianPageClient({
 
         {/* Topic Lens Banner */}
         {selectedTopic && (
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+          <div className="rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-zinc-700 dark:text-zinc-300">
+              <p className="text-sm text-[#191C1D]">
                 Viewing through topic: <span className="font-semibold">{selectedTopic}</span>
               </p>
             </div>
@@ -498,37 +498,37 @@ export default function PoliticianPageClient({
           <div className="vintage-header">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h1 className="vintage-title text-zinc-900 dark:text-zinc-100">
+                <h1 className="vintage-title text-[#191C1D]">
                   {displayName}
                 </h1>
                 <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
                   <div className="vintage-stat-box">
                     <div className="vintage-label">Role</div>
-                    <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                    <div className="vintage-value text-[#191C1D]">
                       {member && !useMockData
                         ? member.chamber === "House"
-                          ? "H"
-                          : "S"
+                          ? "House"
+                          : "Senate"
                         : displayRole?.toUpperCase().slice(0, 1) || "N/A"}
                     </div>
                   </div>
                   <div className="vintage-stat-box">
                     <div className="vintage-label">State</div>
-                    <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                    <div className="vintage-value text-[#191C1D]">
                       {stateNameToCode(member?.state || displayState || "N/A")}
                     </div>
                   </div>
                   {member?.district && (
                     <div className="vintage-stat-box">
                       <div className="vintage-label">District</div>
-                      <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                      <div className="vintage-value text-[#191C1D]">
                         {member.district}
                       </div>
                     </div>
                   )}
                   <div className="vintage-stat-box">
                     <div className="vintage-label">Party</div>
-                    <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                    <div className="vintage-value text-[#191C1D]">
                       {member?.party || displayParty || "N/A"}
                     </div>
                   </div>
@@ -539,7 +539,7 @@ export default function PoliticianPageClient({
                   variant="ghost" 
                   size="sm" 
                   onClick={handleProfileReceipts}
-                  className="border-2 border-zinc-900 font-bold uppercase tracking-wider dark:border-zinc-100"
+                  className="border-2 border-[#191C1D] font-bold uppercase tracking-wider"
                 >
                   Sources
                 </Button>
@@ -554,7 +554,7 @@ export default function PoliticianPageClient({
                 {displayCommittees.map((committee) => (
                   <span
                     key={committee}
-                    className="border-2 border-zinc-900 bg-zinc-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-zinc-900 dark:border-zinc-100 dark:bg-zinc-800 dark:text-zinc-100"
+                    className="border-2 border-[#191C1D] bg-[#EDEEEF] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#191C1D]"
                   >
                     {committee}
                   </span>
@@ -564,9 +564,9 @@ export default function PoliticianPageClient({
           )}
           
           {useMockData && (
-            <div className="vintage-section border-orange-500 dark:border-orange-400">
-              <div className="border-2 border-orange-500 bg-orange-50 px-4 py-2 dark:border-orange-400 dark:bg-orange-900/50">
-                <p className="text-sm font-bold uppercase text-orange-700 dark:text-orange-300">
+            <div className="vintage-section border-orange-500">
+              <div className="border-2 border-orange-500 bg-orange-50 px-4 py-2">
+                <p className="text-sm font-bold uppercase text-orange-700">
                   Mock Data Enabled
                 </p>
               </div>
@@ -578,7 +578,7 @@ export default function PoliticianPageClient({
         <section id="overview">
           <div className="vintage-card p-6">
             <div className="vintage-header">
-              <h2 className="vintage-title text-zinc-900 dark:text-zinc-100">
+              <h2 className="vintage-title text-[#191C1D]">
                 Key Takeaways
               </h2>
             </div>
@@ -586,9 +586,9 @@ export default function PoliticianPageClient({
               {keyTakeaways.map((takeaway, index) => (
                 <li
                   key={index}
-                  className="flex items-start gap-3 text-zinc-700 dark:text-zinc-300"
+                  className="flex items-start gap-3 text-[#191C1D]"
                 >
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-zinc-400"></span>
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#C5C6CF]"></span>
                   <span className="flex-1">{takeaway}</span>
                   {/* Add citation to first 2 takeaways only */}
                   {index < 2 && (
@@ -622,7 +622,7 @@ export default function PoliticianPageClient({
               ))}
             </ul>
             <div className="mb-6 flex items-start justify-between gap-3">
-              <p className="flex-1 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              <p className="flex-1 text-sm leading-relaxed text-[#75777F]">
                 {politician.whyThisMatters}
               </p>
               <InlineCitation
@@ -651,22 +651,22 @@ export default function PoliticianPageClient({
             </div>
             <div className="vintage-section">
               <div className="vintage-subtitle mb-3">Key Metrics</div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="vintage-stat-box">
                   <div className="vintage-label">Top Donor</div>
-                  <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                  <div className="vintage-value text-[#191C1D]">
                     {politician.metrics.topDonorCategory}
                   </div>
                 </div>
                 <div className="vintage-stat-box">
                   <div className="vintage-label">Votes</div>
-                  <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                  <div className="vintage-value text-[#191C1D]">
                     {politician.metrics.votesThisYear}
                   </div>
                 </div>
                 <div className="vintage-stat-box">
                   <div className="vintage-label">Bills</div>
-                  <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                  <div className="vintage-value text-[#191C1D]">
                     {politician.metrics.billsSponsored}
                   </div>
                 </div>
@@ -680,14 +680,14 @@ export default function PoliticianPageClient({
           <div className="vintage-card p-6">
             <div className="vintage-header">
               <div className="flex items-start justify-between">
-                <h2 className="vintage-title text-zinc-900 dark:text-zinc-100">
+                <h2 className="vintage-title text-[#191C1D]">
                   Campaign Finance
                 </h2>
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={handleMoneyReceipts}
-                  className="border-2 border-zinc-900 font-bold uppercase tracking-wider dark:border-zinc-100"
+                  className="border-2 border-[#191C1D] font-bold uppercase tracking-wider"
                 >
                   Sources
                 </Button>
@@ -696,8 +696,8 @@ export default function PoliticianPageClient({
             
             {/* Health Status Banner for OpenFEC */}
             {healthStatus && (healthStatus.openfec === "Down" || healthStatus.openfec === "Degraded") && (
-              <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 dark:border-orange-800 dark:bg-orange-900/50">
-                <p className="text-sm text-orange-700 dark:text-orange-300">
+              <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
+                <p className="text-sm text-orange-700">
                   <span className="font-semibold">OpenFEC currently unavailable.</span> Campaign finance data may not be up to date.
                 </p>
               </div>
@@ -707,10 +707,10 @@ export default function PoliticianPageClient({
             {moneyData && (
               <div className="vintage-section">
                 <div className="vintage-subtitle mb-3">Financial Totals</div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   <div className="vintage-stat-box">
                     <div className="vintage-label">Raised</div>
-                    <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                    <div className="vintage-value text-[#191C1D]">
                       {moneyData.totals.raised >= 1000000
                         ? `$${(moneyData.totals.raised / 1000000).toFixed(2)}M`
                         : moneyData.totals.raised >= 1000
@@ -720,7 +720,7 @@ export default function PoliticianPageClient({
                   </div>
                   <div className="vintage-stat-box">
                     <div className="vintage-label">Spent</div>
-                    <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                    <div className="vintage-value text-[#191C1D]">
                       {moneyData.totals.spent >= 1000000
                         ? `$${(moneyData.totals.spent / 1000000).toFixed(2)}M`
                         : moneyData.totals.spent >= 1000
@@ -730,7 +730,7 @@ export default function PoliticianPageClient({
                   </div>
                   <div className="vintage-stat-box">
                     <div className="vintage-label">Cash on Hand</div>
-                    <div className="vintage-value text-zinc-900 dark:text-zinc-100">
+                    <div className="vintage-value text-[#191C1D]">
                       {moneyData.totals.cashOnHand >= 1000000
                         ? `$${(moneyData.totals.cashOnHand / 1000000).toFixed(2)}M`
                         : moneyData.totals.cashOnHand >= 1000
@@ -744,15 +744,15 @@ export default function PoliticianPageClient({
             
             {/* Finance not available messages */}
             {member && !member.fecCandidateId && !moneyData && (
-              <div className="mb-6 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="mb-6 rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
+                <p className="text-sm text-[#75777F]">
                   Finance data not linked yet. FEC candidate ID mapping needed.
                 </p>
               </div>
             )}
             {member && member.fecCandidateId && !moneyData && (
-              <div className="mb-6 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/50">
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              <div className="mb-6 rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
+                <p className="text-sm text-[#75777F]">
                   FEC totals not available yet. Campaign finance data may still be processing or the candidate may not have filed reports for the current cycle.
                 </p>
               </div>
@@ -763,7 +763,7 @@ export default function PoliticianPageClient({
               <FecCandidateSearchHelper member={member} />
             )}
             
-            <p className="mb-6 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+            <p className="mb-6 text-sm leading-relaxed text-[#75777F]">
               {moneyData 
                 ? "Campaign finance data from the Federal Election Commission."
                 : politician.money.moduleSummary
@@ -772,26 +772,26 @@ export default function PoliticianPageClient({
 
             {/* Layer C: Detailed Content in Disclosure - Vintage Styled */}
             <div className="vintage-section">
-              <div className="border-2 border-zinc-900 dark:border-zinc-100">
+              <div className="border-2 border-[#191C1D]">
               <Disclosure title="Top Contributors" defaultOpen={true}>
                 {moneyData && moneyData.topContributors.length > 0 ? (
                   <ul className="space-y-2">
                     {moneyData.topContributors.map((contributor, index) => (
                       <li
                         key={index}
-                        className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-b-0 dark:border-zinc-800"
+                        className="flex items-center justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0"
                       >
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                        <span className="text-sm text-[#191C1D]">
                           {contributor.name}
                         </span>
-                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        <span className="text-sm font-medium text-[#191C1D]">
                           {contributor.amount}
                         </span>
                       </li>
                     ))}
                   </ul>
                 ) : moneyData ? (
-                  <div className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                  <div className="py-4 text-center text-sm text-[#75777F]">
                     <p>Contributor data not available through the OpenFEC API.</p>
                     <p className="mt-1 text-xs">The FEC releases this data, but detailed contributor aggregations may not be accessible via API endpoints yet.</p>
                   </div>
@@ -800,12 +800,12 @@ export default function PoliticianPageClient({
                     {displayMoneyData.topContributors.map((contributor, index) => (
                       <li
                         key={index}
-                        className="flex items-center justify-between border-b border-zinc-100 pb-2 last:border-b-0 dark:border-zinc-800"
+                        className="flex items-center justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0"
                       >
-                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                        <span className="text-sm text-[#191C1D]">
                           {contributor.name}
                         </span>
-                        <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        <span className="text-sm font-medium text-[#191C1D]">
                           {contributor.amount}
                         </span>
                       </li>
@@ -820,16 +820,16 @@ export default function PoliticianPageClient({
                     {moneyData.industryBreakdown.map((industry, index) => (
                       <div key={index}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                          <span className="text-sm text-[#75777F]">
                             {industry.industry}
                           </span>
-                          <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                          <span className="text-sm font-medium text-[#191C1D]">
                             {industry.percentage}%
                           </span>
                         </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#EDEEEF]">
                           <div
-                            className="h-full bg-zinc-600 dark:bg-zinc-400 transition-all duration-300"
+                            className="h-full bg-[#041534] transition-all duration-300"
                             style={{ width: `${industry.percentage}%` }}
                           />
                         </div>
@@ -846,7 +846,7 @@ export default function PoliticianPageClient({
                     </div>
                   </div>
                 ) : moneyData ? (
-                  <div className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                  <div className="py-4 text-center text-sm text-[#75777F]">
                     <p>Industry breakdown data not available through the OpenFEC API.</p>
                     <p className="mt-1 text-xs">The FEC releases this data, but detailed industry aggregations may not be accessible via API endpoints yet.</p>
                   </div>
@@ -857,16 +857,16 @@ export default function PoliticianPageClient({
                         {displayMoneyData.industryBreakdown.map((industry, index) => (
                           <div key={index}>
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                              <span className="text-sm text-[#75777F]">
                                 {industry.industry}
                               </span>
-                              <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                              <span className="text-sm font-medium text-[#191C1D]">
                                 {industry.percentage}%
                               </span>
                             </div>
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-[#EDEEEF]">
                               <div
-                                className="h-full bg-zinc-400 dark:bg-zinc-600"
+                                className="h-full bg-[#75777F]"
                                 style={{ width: `${industry.percentage}%` }}
                               />
                             </div>
@@ -883,7 +883,7 @@ export default function PoliticianPageClient({
                         </div>
                       </>
                     ) : (
-                      <div className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                      <div className="py-4 text-center text-sm text-[#75777F]">
                         Industry breakdown data not available.
                       </div>
                     )}
@@ -900,14 +900,14 @@ export default function PoliticianPageClient({
           <div className="vintage-card p-6">
             <div className="vintage-header">
               <div className="flex items-start justify-between">
-                <h2 className="vintage-title text-zinc-900 dark:text-zinc-100">
+                <h2 className="vintage-title text-[#191C1D]">
                   {sponsoredBills || cosponsoredBills ? "Legislative Activity" : "Voting Record"}
                 </h2>
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={handleVotesReceipts}
-                  className="border-2 border-zinc-900 font-bold uppercase tracking-wider dark:border-zinc-100"
+                  className="border-2 border-[#191C1D] font-bold uppercase tracking-wider"
                 >
                   Sources
                 </Button>
@@ -916,16 +916,16 @@ export default function PoliticianPageClient({
             
             {/* Health Status Banner for Congress.gov */}
             {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") && (
-              <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 dark:border-orange-800 dark:bg-orange-900/50">
-                <p className="text-sm text-orange-700 dark:text-orange-300">
+              <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
+                <p className="text-sm text-orange-700">
                   <span className="font-semibold">Congress.gov currently unavailable.</span> Legislative activity data may not be up to date.
                 </p>
               </div>
             )}
             
-            <p className="mb-6 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+            <p className="mb-6 text-sm leading-relaxed text-[#75777F]">
               {sponsoredBills || cosponsoredBills
-                ? `Bills sponsored and cosponsored by ${displayName} in the 118th Congress.`
+                ? `Bills sponsored and cosponsored by ${displayName} in the 119th Congress.`
                 : politician.votes.moduleSummary
               }
             </p>
@@ -933,7 +933,7 @@ export default function PoliticianPageClient({
             {/* Real Legislative Activity (Sponsored/Cosponsored Bills) */}
             {member && !useMockData ? (
               (sponsoredBills && sponsoredBills.length > 0) || (cosponsoredBills && cosponsoredBills.length > 0) ? (
-                <div className="space-y-0 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                <div className="space-y-0 rounded border border-[#C5C6CF]">
                   {/* Sponsored Bills */}
                   {sponsoredBills && sponsoredBills.length > 0 && (
                     <Disclosure title="Sponsored Bills" defaultOpen={true}>
@@ -943,24 +943,24 @@ export default function PoliticianPageClient({
                           return (
                             <div
                               key={bill.id}
-                              className={`flex items-start justify-between border-b border-zinc-100 pb-2 last:border-b-0 dark:border-zinc-800 ${
-                                isHighlighted ? "border-l-4 border-l-zinc-900 dark:border-l-zinc-100 bg-zinc-50/50 dark:bg-zinc-900/30 -ml-2 pl-2 rounded" : ""
+                              className={`flex items-start justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0 ${
+                                isHighlighted ? "border-l-4 border-l-[#041534] bg-[#F8F9FA] -ml-2 pl-2 rounded" : ""
                               }`}
                             >
                               <div className="flex-1 min-w-0">
                                 <Link
                                   href={`/bill/${bill.id}`}
-                                  className="text-sm font-medium text-zinc-900 hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300"
+                                  className="text-sm font-medium text-[#041534] hover:text-[#1B2A4A]"
                                 >
                                   {bill.title}
                                 </Link>
-                                <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                                <p className="mt-0.5 text-xs text-[#75777F]">
                                   {bill.type} {bill.number} • {bill.latestAction || "No recent action"}
                                   {bill.updateDate && ` • ${bill.updateDate}`}
                                   {isHighlighted && (
                                     <>
                                       {" • "}
-                                      <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                                      <span className="font-medium text-[#191C1D]">
                                         {selectedTopic}
                                       </span>
                                     </>
@@ -983,24 +983,24 @@ export default function PoliticianPageClient({
                           return (
                             <div
                               key={bill.id}
-                              className={`flex items-start justify-between border-b border-zinc-100 pb-2 last:border-b-0 dark:border-zinc-800 ${
-                                isHighlighted ? "border-l-4 border-l-zinc-900 dark:border-l-zinc-100 bg-zinc-50/50 dark:bg-zinc-900/30 -ml-2 pl-2 rounded" : ""
+                              className={`flex items-start justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0 ${
+                                isHighlighted ? "border-l-4 border-l-[#041534] bg-[#F8F9FA] -ml-2 pl-2 rounded" : ""
                               }`}
                             >
                               <div className="flex-1 min-w-0">
                                 <Link
                                   href={`/bill/${bill.id}`}
-                                  className="text-sm font-medium text-zinc-900 hover:text-zinc-700 dark:text-zinc-100 dark:hover:text-zinc-300"
+                                  className="text-sm font-medium text-[#041534] hover:text-[#1B2A4A]"
                                 >
                                   {bill.title}
                                 </Link>
-                                <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                                <p className="mt-0.5 text-xs text-[#75777F]">
                                   {bill.type} {bill.number} • {bill.latestAction || "No recent action"}
                                   {bill.updateDate && ` • ${bill.updateDate}`}
                                   {isHighlighted && (
                                     <>
                                       {" • "}
-                                      <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                                      <span className="font-medium text-[#191C1D]">
                                         {selectedTopic}
                                       </span>
                                     </>
@@ -1017,18 +1017,18 @@ export default function PoliticianPageClient({
               ) : (
                 <div className="py-8 text-center">
                         {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") ? (
-                          <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                          <p className="text-sm leading-relaxed text-[#75777F]">
                             <span className="font-semibold">Congress.gov data temporarily unavailable.</span> Legislative activity data may not be up to date.
                           </p>
                         ) : (
                           <div className="space-y-2">
-                            <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                            <p className="text-sm leading-relaxed text-[#75777F]">
                               No legislative activity found for this member in the current dataset.
                             </p>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                            <p className="text-xs text-[#75777F]">
                               {sponsoredBills === null && cosponsoredBills === null
                                 ? "Data fetch may have failed. Check server logs for details."
-                                : "The member may not have sponsored or cosponsored bills in the 118th Congress, or the data may still be processing."}
+                                : "The member may not have sponsored or cosponsored bills in the 119th Congress, or the data may still be processing."}
                             </p>
                           </div>
                         )}
@@ -1036,30 +1036,30 @@ export default function PoliticianPageClient({
                     )
             ) : (
               // Mock votes fallback for non-real members
-              <div className="space-y-0 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <div className="space-y-0 rounded border border-[#C5C6CF]">
                 {Object.entries(votesByTopic).map(([topic, votes]) => (
                   <Disclosure key={topic} title={topic}>
                     <div className="space-y-2">
                       {votes.map((vote, index) => (
                         <div
                           key={index}
-                          className="flex items-start justify-between border-b border-zinc-100 pb-2 last:border-b-0 dark:border-zinc-800"
+                          className="flex items-start justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0"
                         >
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            <p className="text-sm font-medium text-[#191C1D]">
                               {vote.description}
                             </p>
-                            <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                            <p className="mt-0.5 text-xs text-[#75777F]">
                               {vote.date}
                             </p>
                           </div>
                           <span
                             className={`ml-3 rounded-full px-2 py-0.5 text-xs font-medium ${
                               vote.position === "Yes"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                ? "bg-green-100 text-green-800"
                                 : vote.position === "No"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-[#EDEEEF] text-[#191C1D]"
                             }`}
                           >
                             {vote.position}
@@ -1083,30 +1083,30 @@ export default function PoliticianPageClient({
 
             {/* Mock Votes (fallback when no real legislative activity - only for mock data) */}
             {(!member || useMockData) && !sponsoredBills && !cosponsoredBills && (
-              <div className="space-y-0 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <div className="space-y-0 rounded border border-[#C5C6CF]">
                 {Object.entries(votesByTopic).map(([topic, votes]) => (
                   <Disclosure key={topic} title={topic}>
                     <div className="space-y-2">
                       {votes.map((vote, index) => (
                         <div
                           key={index}
-                          className="flex items-start justify-between border-b border-zinc-100 pb-2 last:border-b-0 dark:border-zinc-800"
+                          className="flex items-start justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0"
                         >
                           <div className="flex-1">
-                            <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                            <p className="text-sm font-medium text-[#191C1D]">
                               {vote.description}
                             </p>
-                            <p className="mt-0.5 text-xs text-zinc-600 dark:text-zinc-400">
+                            <p className="mt-0.5 text-xs text-[#75777F]">
                               {vote.date}
                             </p>
                           </div>
                           <span
                             className={`ml-3 rounded-full px-2 py-0.5 text-xs font-medium ${
                               vote.position === "Yes"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                ? "bg-green-100 text-green-800"
                                 : vote.position === "No"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-[#EDEEEF] text-[#191C1D]"
                             }`}
                           >
                             {vote.position}
@@ -1136,7 +1136,7 @@ export default function PoliticianPageClient({
             <div className="vintage-card p-6">
               <div className="vintage-header">
                 <div className="flex items-start justify-between">
-                  <h2 className="vintage-title text-zinc-900 dark:text-zinc-100">
+                  <h2 className="vintage-title text-[#191C1D]">
                     Roll-Call Votes
                   </h2>
                   {memberVotes && memberVotes.length > 0 && (
@@ -1144,7 +1144,7 @@ export default function PoliticianPageClient({
                       variant="ghost" 
                       size="sm" 
                       onClick={handleRollCallVotesReceipts}
-                      className="border-2 border-zinc-900 font-bold uppercase tracking-wider dark:border-zinc-100"
+                      className="border-2 border-[#191C1D] font-bold uppercase tracking-wider"
                     >
                       Sources
                     </Button>
@@ -1154,40 +1154,40 @@ export default function PoliticianPageClient({
               
               {/* Health Status Banner for Congress.gov */}
               {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") && (
-                <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 dark:border-orange-800 dark:bg-orange-900/50">
-                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
+                  <p className="text-sm text-orange-700">
                     <span className="font-semibold">Congress.gov currently unavailable.</span> Roll-call vote data may not be up to date.
                   </p>
                 </div>
               )}
               
-              <p className="mb-6 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                Recent roll-call votes cast by {displayName} in the 118th Congress.
+              <p className="mb-6 text-sm leading-relaxed text-[#75777F]">
+                Recent roll-call votes cast by {displayName} in the 119th Congress.
               </p>
 
               {memberVotes && memberVotes.length > 0 ? (
-                <div className="space-y-0 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                <div className="space-y-0 rounded border border-[#C5C6CF]">
                   {memberVotes.slice(0, 10).map((vote) => {
                     const isHighlighted = selectedTopic && vote.topic === selectedTopic;
                     return (
                       <div
                         key={vote.id}
-                        className={`flex items-start justify-between border-b border-zinc-100 pb-3 pt-3 first:pt-0 last:border-b-0 dark:border-zinc-800 ${
+                        className={`flex items-start justify-between border-b border-[#EDEEEF] pb-3 pt-3 first:pt-0 last:border-b-0 ${
                           isHighlighted
-                            ? "border-l-4 border-l-zinc-900 dark:border-l-zinc-100 bg-zinc-50/50 dark:bg-zinc-900/30 -ml-2 pl-2 rounded"
+                            ? "border-l-4 border-l-[#041534] bg-[#F8F9FA] -ml-2 pl-2 rounded"
                             : ""
                         }`}
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                          <p className="text-sm font-medium text-[#191C1D]">
                             {vote.description}
                           </p>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                          <div className="mt-1 flex items-center gap-2 text-xs text-[#75777F]">
                             <span>{vote.date}</span>
                             {isHighlighted && (
                               <>
                                 <span>•</span>
-                                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                                <span className="font-medium text-[#191C1D]">
                                   {selectedTopic}
                                 </span>
                               </>
@@ -1209,10 +1209,10 @@ export default function PoliticianPageClient({
                         <span
                           className={`ml-3 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
                             vote.position === "Yes"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              ? "bg-green-100 text-green-800"
                               : vote.position === "No"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                              : "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-[#EDEEEF] text-[#191C1D]"
                           }`}
                         >
                           {vote.position}
@@ -1223,13 +1223,13 @@ export default function PoliticianPageClient({
                 </div>
               ) : healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") ? (
                 <div className="py-8 text-center">
-                  <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                  <p className="text-sm leading-relaxed text-[#75777F]">
                     <span className="font-semibold">Congress.gov data temporarily unavailable.</span> Roll-call vote data may not be up to date.
                   </p>
                 </div>
               ) : (
                 <div className="py-8 text-center">
-                  <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                  <p className="text-sm leading-relaxed text-[#75777F]">
                     No roll-call votes found for this member in the current dataset.
                   </p>
                 </div>
@@ -1243,7 +1243,7 @@ export default function PoliticianPageClient({
           <div className="vintage-card p-6">
             <div className="vintage-header">
               <div className="flex items-start justify-between">
-                <h2 className="vintage-title text-zinc-900 dark:text-zinc-100">
+                <h2 className="vintage-title text-[#191C1D]">
                   Public Statements
                 </h2>
               {(realStatements && realStatements.length > 0) || politician.statements.statements.length > 0 ? (
@@ -1260,34 +1260,34 @@ export default function PoliticianPageClient({
             
             {/* Health Status Banner for Congress.gov */}
             {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") && (
-              <div className="mb-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 dark:border-orange-800 dark:bg-orange-900/50">
-                <p className="text-sm text-orange-700 dark:text-orange-300">
+              <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
+                <p className="text-sm text-orange-700">
                   <span className="font-semibold">Congress.gov currently unavailable.</span> Statement data may not be up to date.
                 </p>
               </div>
             )}
-            <p className="mb-6 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+            <p className="mb-6 text-sm leading-relaxed text-[#75777F]">
               {politician.statements.moduleSummary}
             </p>
 
             {/* Layer C: Detailed Content in Disclosure */}
             {statementsLoading ? (
-              <div className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+              <div className="py-8 text-center text-sm text-[#75777F]">
                 Loading statements...
               </div>
             ) : realStatements && realStatements.length > 0 ? (
               // Show real statements if available
-              <div className="space-y-0 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <div className="space-y-0 rounded border border-[#C5C6CF]">
                 {realStatements.map((statement) => {
                   const isHighlighted = selectedTopic && statement.topic === selectedTopic;
                   return (
                     <div
                       key={statement.id}
-                      className={isHighlighted ? "border-l-4 border-l-zinc-900 dark:border-l-zinc-100" : ""}
+                      className={isHighlighted ? "border-l-4 border-l-[#041534]" : ""}
                     >
                       <Disclosure title={statement.title}>
-                        <div className={`space-y-3 ${isHighlighted ? "bg-zinc-50/50 dark:bg-zinc-900/30 -m-2 p-2 rounded" : ""}`}>
-                          <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-500">
+                        <div className={`space-y-3 ${isHighlighted ? "bg-[#F8F9FA] -m-2 p-2 rounded" : ""}`}>
+                          <div className="flex items-center gap-2 text-xs text-[#75777F]">
                             <span>{statement.date}</span>
                             {statement.sourceType && (
                               <>
@@ -1298,13 +1298,13 @@ export default function PoliticianPageClient({
                             {isHighlighted && (
                               <>
                                 <span>•</span>
-                                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                                <span className="font-medium text-[#191C1D]">
                                   {selectedTopic}
                                 </span>
                               </>
                             )}
                           </div>
-                          <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                          <p className="text-sm leading-relaxed text-[#191C1D]">
                             {statement.text}
                           </p>
                           {statement.sources && statement.sources.length > 0 && (
@@ -1325,7 +1325,7 @@ export default function PoliticianPageClient({
             ) : member && !useMockData ? (
               // Show calm message for real members without statements
               <div className="py-8 text-center">
-                <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                <p className="text-sm leading-relaxed text-[#75777F]">
                   {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") ? (
                     <>
                       <span className="font-semibold">Congress.gov data temporarily unavailable.</span> Official statements feed may not be up to date.
@@ -1337,17 +1337,17 @@ export default function PoliticianPageClient({
               </div>
             ) : (
               // Fall back to mock statements for mock data
-              <div className="space-y-0 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <div className="space-y-0 rounded border border-[#C5C6CF]">
                 {politician.statements.statements.map((statement) => {
                   const isHighlighted = selectedTopic && statement.topic === selectedTopic;
                   return (
                     <div
                       key={statement.id}
-                      className={isHighlighted ? "border-l-4 border-l-zinc-900 dark:border-l-zinc-100" : ""}
+                      className={isHighlighted ? "border-l-4 border-l-[#041534]" : ""}
                     >
                       <Disclosure title={statement.title}>
-                        <div className={`space-y-3 ${isHighlighted ? "bg-zinc-50/50 dark:bg-zinc-900/30 -m-2 p-2 rounded" : ""}`}>
-                          <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-500">
+                        <div className={`space-y-3 ${isHighlighted ? "bg-[#F8F9FA] -m-2 p-2 rounded" : ""}`}>
+                          <div className="flex items-center gap-2 text-xs text-[#75777F]">
                             <span>{statement.date}</span>
                             {statement.sourceType && (
                               <>
@@ -1358,13 +1358,13 @@ export default function PoliticianPageClient({
                             {isHighlighted && (
                               <>
                                 <span>•</span>
-                                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                                <span className="font-medium text-[#191C1D]">
                                   {selectedTopic}
                                 </span>
                               </>
                             )}
                           </div>
-                          <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+                          <p className="text-sm leading-relaxed text-[#191C1D]">
                             {statement.text}
                           </p>
                           <Button
