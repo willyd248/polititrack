@@ -193,13 +193,13 @@ export default function CommandPalette() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="fixed left-1/2 top-20 z-50 w-full max-w-2xl -translate-x-1/2 rounded-lg border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-zinc-900"
+            className="fixed left-1/2 top-20 z-50 w-full max-w-2xl -translate-x-1/2 rounded-lg border border-[#C5C6CF] bg-white shadow-2xl"
             role="dialog"
             aria-modal="true"
             aria-label="Command palette"
           >
             {/* Search Input */}
-            <div className="border-b border-zinc-200 p-4 dark:border-zinc-800">
+            <div className="border-b border-[#C5C6CF] p-4">
               <div className="relative">
                 <input
                   ref={inputRef}
@@ -207,10 +207,10 @@ export default function CommandPalette() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search politicians, bills..."
-                  className="w-full rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 pl-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-zinc-200 dark:border-zinc-800 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-700 dark:focus:bg-zinc-900 dark:focus:ring-zinc-800"
+                  className="w-full rounded-md border border-[#C5C6CF] bg-[#F5F6FF] px-4 py-3 pl-10 text-sm text-[#191C1D] placeholder:text-[#75777F] focus:border-[#041534] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#041534]/20"
                 />
                 <svg
-                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500"
+                  className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#75777F]"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -228,11 +228,11 @@ export default function CommandPalette() {
             {/* Results */}
             <div className="max-h-96 overflow-y-auto p-2">
               {query.trim() && searching ? (
-                <div className="px-4 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                <div className="px-4 py-8 text-center text-sm text-[#75777F]">
                   Searching...
                 </div>
               ) : query.trim() && results.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                <div className="px-4 py-8 text-center text-sm text-[#75777F]">
                   No results found
                 </div>
               ) : query.trim() && results.length > 0 ? (
@@ -243,8 +243,8 @@ export default function CommandPalette() {
                       onClick={() => handleSelect(result)}
                       className={`w-full rounded-md px-4 py-3 text-left transition-colors duration-150 ${
                         index === selectedIndex
-                          ? "bg-zinc-100 dark:bg-zinc-800"
-                          : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+                          ? "bg-[#F5F6FF]"
+                          : "hover:bg-[#F5F6FF]/50"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -253,16 +253,16 @@ export default function CommandPalette() {
                             <Chip>
                               {result.type === "politician" ? "Politician" : "Bill"}
                             </Chip>
-                            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                            <h3 className="text-sm font-semibold text-[#191C1D] truncate">
                               {result.title}
                             </h3>
                           </div>
-                          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                          <p className="text-xs text-[#75777F]">
                             {result.metadata}
                           </p>
                         </div>
                         <svg
-                          className="h-4 w-4 flex-shrink-0 text-zinc-400 dark:text-zinc-500"
+                          className="h-4 w-4 flex-shrink-0 text-[#75777F]"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -279,7 +279,7 @@ export default function CommandPalette() {
                   ))}
                 </div>
               ) : (
-                <div className="px-4 py-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                <div className="px-4 py-8 text-center text-sm text-[#75777F]">
                   Start typing to search...
                 </div>
               )}
@@ -287,8 +287,8 @@ export default function CommandPalette() {
 
             {/* Footer hint */}
             {query.trim() && results.length > 0 && (
-              <div className="border-t border-zinc-200 px-4 py-2 dark:border-zinc-800">
-                <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-500">
+              <div className="border-t border-[#C5C6CF] px-4 py-2">
+                <div className="flex items-center justify-between text-xs text-[#75777F]">
                   <span>Use arrow keys to navigate</span>
                   <span>Press Enter to select</span>
                 </div>

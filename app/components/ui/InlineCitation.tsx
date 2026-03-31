@@ -23,7 +23,7 @@ export default function InlineCitation({
     return (
       <button
         onClick={handleClick}
-        className={`inline-flex items-center gap-1 text-xs font-medium text-zinc-600 hover:text-zinc-900 transition-colors duration-200 dark:text-zinc-400 dark:hover:text-zinc-100 ${className}`}
+        className={`inline-flex items-center gap-1 text-xs font-medium text-[#75777F] hover:text-[#041534] transition-colors duration-200 ${className}`}
         aria-label="View sources"
       >
         <svg
@@ -47,7 +47,7 @@ export default function InlineCitation({
   return (
     <button
       onClick={handleClick}
-      className={`inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors duration-200 dark:text-zinc-400 dark:hover:text-zinc-100 ${className}`}
+      className={`inline-flex items-center gap-1.5 text-sm font-medium text-[#75777F] hover:text-[#041534] transition-colors duration-200 ${className}`}
       aria-label="View sources"
     >
       <svg

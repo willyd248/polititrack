@@ -655,19 +655,21 @@ export default function PoliticianPageClient({
                 <div className="vintage-stat-box">
                   <div className="vintage-label">Top Donor</div>
                   <div className="vintage-value text-[#191C1D]">
-                    {politician.metrics.topDonorCategory}
+                    {moneyLoading
+                      ? "..."
+                      : moneyData?.topContributors?.[0]?.name?.split(" ").slice(0, 2).join(" ") || "—"}
                   </div>
                 </div>
                 <div className="vintage-stat-box">
                   <div className="vintage-label">Votes</div>
                   <div className="vintage-value text-[#191C1D]">
-                    {politician.metrics.votesThisYear}
+                    {memberVotes && memberVotes.length > 0 ? memberVotes.length : "—"}
                   </div>
                 </div>
                 <div className="vintage-stat-box">
                   <div className="vintage-label">Bills</div>
                   <div className="vintage-value text-[#191C1D]">
-                    {politician.metrics.billsSponsored}
+                    {sponsoredBills && sponsoredBills.length > 0 ? `${sponsoredBills.length}+` : "—"}
                   </div>
                 </div>
               </div>
