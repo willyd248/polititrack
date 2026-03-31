@@ -89,6 +89,16 @@ export default function PoliticianPageClient({
     industryBreakdown: [],
     sources: politician.money.sources,
   };
+
+  // Compute Key Metrics from real data when available
+  const displayBillsSponsored = member
+    ? (sponsoredBills?.length ?? 0)
+    : politician.metrics.billsSponsored;
+  const displayVotesThisYear = member
+    ? (memberVotes?.length ?? 0)
+    : politician.metrics.votesThisYear;
+  const displayTopDonorCategory = moneyData?.industryBreakdown?.[0]?.industry
+    ?? (moneyLoading ? "Loading…" : politician.metrics.topDonorCategory);
   
   // Get display values from member if available, otherwise from politician
   // For real members, always use member data; politicianForCompare is only for mock modules
@@ -655,19 +665,19 @@ export default function PoliticianPageClient({
                 <div className="vintage-stat-box">
                   <div className="vintage-label">Top Donor</div>
                   <div className="vintage-value text-[#191C1D]">
-                    {politician.metrics.topDonorCategory}
+                    {displayTopDonorCategory}
                   </div>
                 </div>
                 <div className="vintage-stat-box">
                   <div className="vintage-label">Votes</div>
                   <div className="vintage-value text-[#191C1D]">
-                    {politician.metrics.votesThisYear}
+                    {displayVotesThisYear}
                   </div>
                 </div>
                 <div className="vintage-stat-box">
                   <div className="vintage-label">Bills</div>
                   <div className="vintage-value text-[#191C1D]">
-                    {politician.metrics.billsSponsored}
+                    {displayBillsSponsored}
                   </div>
                 </div>
               </div>
@@ -742,15 +752,31 @@ export default function PoliticianPageClient({
               </div>
             )}
             
-            {/* Finance not available messages */}
-            {member && !member.fecCandidateId && !moneyData && (
+            {/* Loading state */}
+            {moneyLoading && (
+              <div className="mb-4 rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
+                <p className="text-sm text-[#75777F]">Loading campaign finance data…</p>
+              </div>
+            )}
+
+            {/* Error state */}
+            {moneyError && !moneyLoading && !moneyData && (
+              <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
+                <p className="text-sm text-orange-700">
+                  <span className="font-semibold">Campaign finance data unavailable.</span> The FEC API may be rate-limited. Try refreshing in a moment.
+                </p>
+              </div>
+            )}
+
+            {/* Finance not available messages — use fecCandidateId prop (includes mapping overrides) */}
+            {member && !fecCandidateId && !moneyData && !moneyLoading && !moneyError && (
               <div className="mb-6 rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
                 <p className="text-sm text-[#75777F]">
                   Finance data not linked yet. FEC candidate ID mapping needed.
                 </p>
               </div>
             )}
-            {member && member.fecCandidateId && !moneyData && (
+            {member && fecCandidateId && !moneyData && !moneyLoading && !moneyError && (
               <div className="mb-6 rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
                 <p className="text-sm text-[#75777F]">
                   FEC totals not available yet. Campaign finance data may still be processing or the candidate may not have filed reports for the current cycle.

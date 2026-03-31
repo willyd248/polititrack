@@ -1,6 +1,6 @@
 /**
  * Mapper from OpenFEC API to Polititrack Money module data
- * 
+ *
  * OpenFEC API documentation: https://api.open.fec.gov/developers/
  */
 
@@ -63,6 +63,7 @@ interface FecCommittee {
   committee_id?: string;
   name?: string;
   committee_type?: string;
+  designation?: string; // 'P' = principal campaign committee
 }
 
 interface FecCommitteesResponse {
@@ -75,17 +76,16 @@ interface FecCommitteesResponse {
 }
 
 /**
- * FEC API response types for contributors
+ * FEC API response types for individual schedule_a contributions
  */
-interface FecContributor {
+interface FecScheduleAItem {
   contributor_name?: string;
   contribution_receipt_amount?: number;
   contributor_aggregate_ytd?: number;
-  total?: number; // Alternative field name
 }
 
-interface FecContributorsResponse {
-  results?: FecContributor[];
+interface FecScheduleAResponse {
+  results?: FecScheduleAItem[];
   pagination?: {
     count: number;
     page: number;
@@ -94,16 +94,16 @@ interface FecContributorsResponse {
 }
 
 /**
- * FEC API response types for industry breakdown
+ * FEC API response types for industry/employer breakdown
  */
-interface FecIndustry {
+interface FecEmployerItem {
   employer?: string;
   total?: number;
   count?: number;
 }
 
-interface FecIndustryResponse {
-  results?: FecIndustry[];
+interface FecEmployerResponse {
+  results?: FecEmployerItem[];
   pagination?: {
     count: number;
     page: number;
@@ -112,7 +112,14 @@ interface FecIndustryResponse {
 }
 
 /**
- * Get committees for a candidate
+ * In-memory cache to prevent burning FEC rate limit (60 req/hr)
+ * Keyed by FEC candidate ID, value is { data, timestamp }
+ */
+const moneyCache = new Map<string, { data: MoneyModule | null; timestamp: number }>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Get committees for a candidate, preferring the principal campaign committee
  */
 async function getCandidateCommittees(
   fecCandidateId: string,
@@ -120,15 +127,15 @@ async function getCandidateCommittees(
 ): Promise<string[]> {
   try {
     const { fecFetch } = await import("../fec");
-    
+
     const params: Record<string, string | number> = {
-      per_page: 50, // Get all committees
+      per_page: 20,
     };
-    
+
     if (cycle) {
       params.cycle = cycle;
     }
-    
+
     const response = await fecFetch<FecCommitteesResponse>(
       `/candidate/${fecCandidateId}/committees/`,
       {
@@ -136,16 +143,22 @@ async function getCandidateCommittees(
         revalidate: 86400,
       }
     );
-    
+
     if (!response.results || response.results.length === 0) {
       return [];
     }
-    
-    // Return committee IDs, prioritizing principal committees
-    return response.results
-      .filter((committee) => committee.committee_id)
-      .map((committee) => committee.committee_id!)
-      .slice(0, 5); // Limit to top 5 committees to avoid too many API calls
+
+    // Sort to put principal campaign committee first (designation = 'P')
+    const sorted = [...response.results].sort((a, b) => {
+      if (a.designation === "P") return -1;
+      if (b.designation === "P") return 1;
+      return 0;
+    });
+
+    return sorted
+      .filter((c) => c.committee_id)
+      .map((c) => c.committee_id!)
+      .slice(0, 3); // Limit to top 3 committees
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
       console.warn(`[getCandidateCommittees] Failed for ${fecCandidateId}:`, error);
@@ -155,8 +168,32 @@ async function getCandidateCommittees(
 }
 
 /**
+ * Aggregate raw schedule_a contributions by contributor name
+ */
+function aggregateContributors(
+  results: FecScheduleAItem[]
+): Array<{ name: string; amount: string }> {
+  const contributorMap = new Map<string, number>();
+
+  for (const item of results) {
+    if (item.contributor_name) {
+      const amount = item.contribution_receipt_amount || 0;
+      if (amount > 0) {
+        const current = contributorMap.get(item.contributor_name) || 0;
+        contributorMap.set(item.contributor_name, current + amount);
+      }
+    }
+  }
+
+  return Array.from(contributorMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, amount]) => ({ name, amount: formatCurrency(amount) }));
+}
+
+/**
  * Fetch top contributors for a candidate
- * Tries candidate-level endpoint first, then falls back to committee-level aggregation
+ * Uses /schedules/schedule_a/ with committee_id (correct OpenFEC endpoint)
  */
 async function fetchTopContributors(
   fecCandidateId: string,
@@ -164,129 +201,54 @@ async function fetchTopContributors(
 ): Promise<Array<{ name: string; amount: string }>> {
   try {
     const { fecFetch } = await import("../fec");
-    
-    // Try candidate-level endpoint first
-    const params: Record<string, string | number> = {
-      sort: "-contribution_receipt_amount", // Sort by contribution amount descending
-      per_page: 10, // Top 10 contributors
-    };
-    
-    if (cycle) {
-      params.cycle = cycle;
-    }
-    
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchTopContributors] Fetching for ${fecCandidateId}, cycle: ${cycle}`);
-    }
-    
-    try {
-      const response = await fecFetch<FecContributorsResponse>(
-        `/candidate/${fecCandidateId}/schedules/schedule_a/by_contributor/`,
-        {
-          params,
-          revalidate: 86400, // 24 hour cache
-        }
-      );
-      
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[fetchTopContributors] Candidate-level results for ${fecCandidateId}:`, response.results?.length || 0, "contributors");
-      }
-      
-      if (response.results && response.results.length > 0) {
-        return response.results
-          .filter((contributor) => {
-            const amount = contributor.contribution_receipt_amount || contributor.total || 0;
-            return contributor.contributor_name && amount > 0;
-          })
-          .map((contributor) => {
-            const amount = contributor.contribution_receipt_amount || contributor.total || 0;
-            return {
-              name: contributor.contributor_name || "Unknown",
-              amount: formatCurrency(amount),
-            };
-          })
-          .slice(0, 10); // Limit to top 10
-      }
-    } catch (candidateError) {
-      // Endpoint doesn't exist (404) or other error - this is expected for many candidates
-      // Don't log unless in development, and only if it's not a 404
-      if (process.env.NODE_ENV === "development") {
-        const is404 = candidateError instanceof Error && candidateError.message.includes("404");
-        if (!is404) {
-          console.log(`[fetchTopContributors] Candidate-level endpoint failed, trying committees:`, candidateError);
-        }
-      }
-    }
-    
-    // Fallback: Get committees and aggregate
+
+    // Get committee IDs first
     const committeeIds = await getCandidateCommittees(fecCandidateId, cycle);
-    
-    if (committeeIds.length === 0) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[fetchTopContributors] No committees found for ${fecCandidateId}`);
-      }
-      return [];
-    }
-    
-    // Aggregate contributors from all committees
-    const contributorMap = new Map<string, number>();
-    
-    for (const committeeId of committeeIds) {
-      try {
-        const committeeParams: Record<string, string | number> = {
-          sort: "-contribution_receipt_amount",
-          per_page: 20, // Get more per committee to aggregate
-        };
-        
-        if (cycle) {
-          committeeParams.cycle = cycle;
-        }
-        
-        const committeeResponse = await fecFetch<FecContributorsResponse>(
-          `/committee/${committeeId}/schedules/schedule_a/by_contributor/`,
-          {
-            params: committeeParams,
-            revalidate: 86400,
-          }
-        );
-        
-        if (committeeResponse.results) {
-          for (const contributor of committeeResponse.results) {
-            if (contributor.contributor_name) {
-              const amount = contributor.contribution_receipt_amount || contributor.total || 0;
-              const current = contributorMap.get(contributor.contributor_name) || 0;
-              contributorMap.set(contributor.contributor_name, current + amount);
-            }
-          }
-        }
-      } catch (committeeError) {
-        // Skip this committee if it fails (404s are common - endpoints may not exist)
-        // Only log non-404 errors in development
-        if (process.env.NODE_ENV === "development") {
-          const is404 = committeeError instanceof Error && committeeError.message.includes("404");
-          if (!is404) {
-            console.warn(`[fetchTopContributors] Failed for committee ${committeeId}:`, committeeError);
-          }
-        }
-      }
-    }
-    
-    // Sort by total amount and return top 10
-    const sortedContributors = Array.from(contributorMap.entries())
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 10);
-    
+
     if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchTopContributors] Aggregated results for ${fecCandidateId}:`, sortedContributors.length, "contributors");
+      console.log(`[fetchTopContributors] ${fecCandidateId}: committees = ${committeeIds.join(", ")}`);
     }
-    
-    return sortedContributors.map((contributor) => ({
-      name: contributor.name,
-      amount: formatCurrency(contributor.amount),
-    }));
+
+    if (committeeIds.length === 0) {
+      // Fallback: try querying by candidate_id directly
+      const params: Record<string, string | number | boolean> = {
+        candidate_id: fecCandidateId,
+        sort: "-contribution_receipt_amount",
+        per_page: 100,
+        sort_hide_null: true,
+      };
+      if (cycle) params.two_year_transaction_period = cycle;
+
+      const response = await fecFetch<FecScheduleAResponse>(
+        `/schedules/schedule_a/`,
+        { params, revalidate: 86400 }
+      );
+      return aggregateContributors(response.results || []);
+    }
+
+    // Fetch contributions for the primary committee (largest, most recent cycle)
+    const primaryCommitteeId = committeeIds[0];
+    const params: Record<string, string | number | boolean> = {
+      committee_id: primaryCommitteeId,
+      sort: "-contribution_receipt_amount",
+      per_page: 100,
+      sort_hide_null: true,
+    };
+    if (cycle) params.two_year_transaction_period = cycle;
+
+    const response = await fecFetch<FecScheduleAResponse>(
+      `/schedules/schedule_a/`,
+      { params, revalidate: 86400 }
+    );
+
+    const contributors = aggregateContributors(response.results || []);
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[fetchTopContributors] ${fecCandidateId}: found ${contributors.length} contributors`);
+    }
+
+    return contributors;
   } catch (error) {
-    // Log error but don't throw - contributors are optional
     if (process.env.NODE_ENV === "development") {
       console.warn(`[fetchTopContributors] Failed for ${fecCandidateId}:`, error);
     }
@@ -295,158 +257,88 @@ async function fetchTopContributors(
 }
 
 /**
- * Fetch industry breakdown for a candidate
- * Tries candidate-level endpoint first, then falls back to committee-level aggregation
+ * Fetch industry/employer breakdown for a candidate
+ * Uses /schedules/schedule_a/by_employer/ with committee_id (correct OpenFEC endpoint)
  */
 async function fetchIndustryBreakdown(
   fecCandidateId: string,
+  totalRaised: number,
   cycle?: number
 ): Promise<Array<{ industry: string; percentage: number }>> {
   try {
+    if (totalRaised === 0) return [];
+
     const { fecFetch } = await import("../fec");
-    
-    // First, get total contributions to calculate percentages
-    const totalsParams: Record<string, string | number> = {
-      sort: "-cycle",
-      per_page: 1,
-    };
-    
-    if (cycle) {
-      totalsParams.cycle = cycle;
-    }
-    
-    const totalsResponse = await fecFetch<FecCandidateTotalsResponse>(
-      `/candidate/${fecCandidateId}/totals/`,
-      {
-        params: totalsParams,
-        revalidate: 86400,
-      }
-    );
-    
-    const totalRaised = totalsResponse.results?.[0]?.receipts || 0;
-    
-    if (totalRaised === 0) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[fetchIndustryBreakdown] No total raised for ${fecCandidateId}, skipping industry breakdown`);
-      }
-      return [];
-    }
-    
-    // Try candidate-level endpoint first
-    const industryParams: Record<string, string | number> = {
-      sort: "-total", // Sort by total amount descending
-      per_page: 10, // Top 10 industries
-    };
-    
-    if (cycle) {
-      industryParams.cycle = cycle;
-    }
-    
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchIndustryBreakdown] Fetching for ${fecCandidateId}, cycle: ${cycle}, totalRaised: ${totalRaised}`);
-    }
-    
-    try {
-      const response = await fecFetch<FecIndustryResponse>(
-        `/candidate/${fecCandidateId}/schedules/schedule_a/by_employer/`,
-        {
-          params: industryParams,
-          revalidate: 86400, // 24 hour cache
-        }
-      );
-      
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[fetchIndustryBreakdown] Candidate-level results for ${fecCandidateId}:`, response.results?.length || 0, "industries");
-      }
-      
-      if (response.results && response.results.length > 0) {
-        return response.results
-          .filter((industry) => industry.employer && industry.total && industry.total > 0)
-          .map((industry) => ({
-            industry: industry.employer || "Unknown",
-            percentage: Math.round((industry.total! / totalRaised) * 100),
-          }))
-          .slice(0, 10); // Limit to top 10
-      }
-    } catch (candidateError) {
-      // Endpoint doesn't exist (404) or other error - this is expected for many candidates
-      // Don't log unless in development, and only if it's not a 404
-      if (process.env.NODE_ENV === "development") {
-        const is404 = candidateError instanceof Error && candidateError.message.includes("404");
-        if (!is404) {
-          console.log(`[fetchIndustryBreakdown] Candidate-level endpoint failed, trying committees:`, candidateError);
-        }
-      }
-    }
-    
-    // Fallback: Get committees and aggregate
+
+    // Get committee IDs first
     const committeeIds = await getCandidateCommittees(fecCandidateId, cycle);
-    
-    if (committeeIds.length === 0) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[fetchIndustryBreakdown] No committees found for ${fecCandidateId}`);
-      }
-      return [];
-    }
-    
-    // Aggregate industry data from all committees
-    const industryMap = new Map<string, number>();
-    
-    for (const committeeId of committeeIds) {
-      try {
-        const committeeParams: Record<string, string | number> = {
-          sort: "-total",
-          per_page: 20, // Get more per committee to aggregate
-        };
-        
-        if (cycle) {
-          committeeParams.cycle = cycle;
-        }
-        
-        const committeeResponse = await fecFetch<FecIndustryResponse>(
-          `/committee/${committeeId}/schedules/schedule_a/by_employer/`,
-          {
-            params: committeeParams,
-            revalidate: 86400,
-          }
-        );
-        
-        if (committeeResponse.results) {
-          for (const industry of committeeResponse.results) {
-            if (industry.employer && industry.total) {
-              const current = industryMap.get(industry.employer) || 0;
-              industryMap.set(industry.employer, current + industry.total);
-            }
-          }
-        }
-      } catch (committeeError) {
-        // Skip this committee if it fails (404s are common - endpoints may not exist)
-        // Only log non-404 errors in development
-        if (process.env.NODE_ENV === "development") {
-          const is404 = committeeError instanceof Error && committeeError.message.includes("404");
-          if (!is404) {
-            console.warn(`[fetchIndustryBreakdown] Failed for committee ${committeeId}:`, committeeError);
-          }
-        }
-      }
-    }
-    
-    // Sort by total amount and calculate percentages
-    const sortedIndustries = Array.from(industryMap.entries())
-      .map(([employer, total]) => ({ employer, total }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 10);
-    
+
     if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchIndustryBreakdown] Aggregated results for ${fecCandidateId}:`, sortedIndustries.length, "industries");
+      console.log(`[fetchIndustryBreakdown] ${fecCandidateId}: committees = ${committeeIds.join(", ")}`);
     }
-    
-    return sortedIndustries.map((industry) => ({
-      industry: industry.employer,
-      percentage: Math.round((industry.total / totalRaised) * 100),
+
+    const industryMap = new Map<string, number>();
+
+    // Build the employer query params
+    const buildParams = (idKey: string, idValue: string): Record<string, string | number | boolean> => {
+      const p: Record<string, string | number | boolean> = {
+        [idKey]: idValue,
+        sort: "-total",
+        per_page: 10,
+        sort_hide_null: true,
+      };
+      if (cycle) p.two_year_transaction_period = cycle;
+      return p;
+    };
+
+    if (committeeIds.length > 0) {
+      // Query by employer for the primary committee
+      const params = buildParams("committee_id", committeeIds[0]);
+
+      const response = await fecFetch<FecEmployerResponse>(
+        `/schedules/schedule_a/by_employer/`,
+        { params, revalidate: 86400 }
+      );
+
+      if (response.results) {
+        for (const item of response.results) {
+          if (item.employer && item.total && item.total > 0) {
+            const current = industryMap.get(item.employer) || 0;
+            industryMap.set(item.employer, current + item.total);
+          }
+        }
+      }
+    } else {
+      // Fallback: try with candidate_id directly
+      const params = buildParams("candidate_id", fecCandidateId);
+
+      const response = await fecFetch<FecEmployerResponse>(
+        `/schedules/schedule_a/by_employer/`,
+        { params, revalidate: 86400 }
+      );
+
+      if (response.results) {
+        for (const item of response.results) {
+          if (item.employer && item.total && item.total > 0) {
+            industryMap.set(item.employer, item.total);
+          }
+        }
+      }
+    }
+
+    const sorted = Array.from(industryMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[fetchIndustryBreakdown] ${fecCandidateId}: found ${sorted.length} employers`);
+    }
+
+    return sorted.map(([employer, total]) => ({
+      industry: employer,
+      percentage: Math.round((total / totalRaised) * 100),
     }));
   } catch (error) {
-    // Log error but don't throw - industry breakdown is optional
     if (process.env.NODE_ENV === "development") {
       console.warn(`[fetchIndustryBreakdown] Failed for ${fecCandidateId}:`, error);
     }
@@ -456,71 +348,69 @@ async function fetchIndustryBreakdown(
 
 /**
  * Fetch money totals for a candidate from OpenFEC API
- * 
- * @param fecCandidateId - FEC candidate ID (e.g., "S4VT00033")
+ *
+ * @param fecCandidateId - FEC candidate ID (e.g., "H6AL04098")
  * @returns MoneyModule object with financial totals and sources, or null if not found
  */
 export async function fetchMoneyForCandidate(
   fecCandidateId: string
 ): Promise<MoneyModule | null> {
+  // Check in-memory cache first
+  const cached = moneyCache.get(fecCandidateId);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[fetchMoneyForCandidate] Cache hit for ${fecCandidateId}`);
+    }
+    return cached.data;
+  }
+
   try {
     const { fecFetch } = await import("../fec");
-    
+
     // Fetch candidate totals for the most recent election cycle
-    // Sort by cycle descending to get the latest cycle deterministically
     const response = await fecFetch<FecCandidateTotalsResponse>(
       `/candidate/${fecCandidateId}/totals/`,
       {
         params: {
-          sort: "-cycle", // Most recent cycle first (descending)
-          per_page: 1, // Just get the most recent cycle
-          sort_hide_null: false, // Include all results
+          sort: "-cycle",
+          per_page: 1,
+          sort_hide_null: false,
         },
-        revalidate: 86400, // 24 hour cache
+        revalidate: 86400,
       }
     );
-    
+
     if (!response.results || response.results.length === 0) {
-      // No totals available - return null to show "not available" message
+      moneyCache.set(fecCandidateId, { data: null, timestamp: Date.now() });
       return null;
     }
-    
-    // Get the first (most recent) result
+
     const totals = response.results[0];
-    
-    // Map OpenFEC fields to our MoneyModule format with safe fallbacks
-    // Field mappings: receipts -> raised, disbursements -> spent, cash_on_hand_end_period -> cashOnHand
-    // Use nullish coalescing to handle undefined, but check for null/0 separately
+
     const receipts = totals.receipts;
     const disbursements = totals.disbursements;
     const cashOnHandValue = totals.cash_on_hand_end_period;
-    
-    // Convert to numbers, defaulting to 0 if undefined/null
+
     const raised = typeof receipts === "number" ? receipts : 0;
     const spent = typeof disbursements === "number" ? disbursements : 0;
     const cashOnHand = typeof cashOnHandValue === "number" ? cashOnHandValue : 0;
-    
-    // If all totals are zero or missing, return null (data not available yet)
-    // This prevents showing misleading zero values when data hasn't been filed
+
     if (raised === 0 && spent === 0 && cashOnHand === 0) {
+      moneyCache.set(fecCandidateId, { data: null, timestamp: Date.now() });
       return null;
     }
-    
+
     // Fetch top contributors and industry breakdown in parallel
+    // Pass totalRaised to industry breakdown to avoid a redundant totals call
     const [topContributors, industryBreakdown] = await Promise.all([
       fetchTopContributors(fecCandidateId, totals.cycle),
-      fetchIndustryBreakdown(fecCandidateId, totals.cycle),
+      fetchIndustryBreakdown(fecCandidateId, raised, totals.cycle),
     ]);
-    
+
     if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchMoneyForCandidate] Results for ${fecCandidateId}:`, {
-        topContributors: topContributors.length,
-        industryBreakdown: industryBreakdown.length,
-        cycle: totals.cycle,
-      });
+      console.log(`[fetchMoneyForCandidate] ${fecCandidateId}: raised=${raised}, contributors=${topContributors.length}, industries=${industryBreakdown.length}`);
     }
-    
-    // Create sources pointing to OpenFEC
+
     const sources: Source[] = [
       {
         title: "Candidate Financial Totals",
@@ -536,20 +426,19 @@ export async function fetchMoneyForCandidate(
         url: `https://api.open.fec.gov/v1/candidate/${fecCandidateId}/totals/`,
       },
     ];
-    
-    return {
-      totals: {
-        raised,
-        spent,
-        cashOnHand,
-      },
+
+    const result: MoneyModule = {
+      totals: { raised, spent, cashOnHand },
       topContributors,
       industryBreakdown,
       sources,
     };
+
+    moneyCache.set(fecCandidateId, { data: result, timestamp: Date.now() });
+    return result;
   } catch (error) {
     console.error(`Failed to fetch money data for candidate ${fecCandidateId}:`, error);
+    moneyCache.set(fecCandidateId, { data: null, timestamp: Date.now() });
     return null;
   }
 }
-
