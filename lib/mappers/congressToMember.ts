@@ -32,6 +32,7 @@ interface CongressMember {
   party?: string; // May be undefined - check partyName or partyHistory instead
   partyName?: string; // Congress.gov API returns this in list endpoint (e.g., "Democratic", "Republican")
   partyHistory?: Array<{ partyName: string; startDate?: string; endDate?: string }>; // Party history from API
+  terms?: { item: Array<{ chamber: string; startYear?: number; endYear?: number }> }; // Congress.gov list endpoint
   imageUrl?: string;
   depiction?: { imageUrl?: string; attribution?: string }; // Congress.gov list endpoint format
   officialWebsite?: string; // Official website URL if available
@@ -209,8 +210,21 @@ export async function mapCongressMemberToMember(
   const TERRITORY_CODES = ["AS", "DC", "GU", "MP", "PR", "VI"];
   const isTerritory = TERRITORY_CODES.includes(congressMember.state?.toUpperCase());
 
-  let chamber: "House" | "Senate" = congressMember.chamber || "Senate";
-  if (!congressMember.chamber) {
+  // Extract chamber from terms array (list endpoint returns it here, not at top level)
+  // Find the most recent term without an endYear (i.e., current term)
+  const currentTerm = congressMember.terms?.item
+    ?.slice()
+    .reverse()
+    .find((t) => !t.endYear);
+  const termsChamber = currentTerm?.chamber;
+  const apiChamber: "House" | "Senate" | undefined = termsChamber?.includes("House")
+    ? "House"
+    : termsChamber?.includes("Senate")
+    ? "Senate"
+    : undefined;
+
+  let chamber: "House" | "Senate" = apiChamber || congressMember.chamber || "Senate";
+  if (!apiChamber && !congressMember.chamber) {
     if (congressMember.district !== undefined && congressMember.district !== null) {
       chamber = "House";
     } else if (isTerritory) {

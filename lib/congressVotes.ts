@@ -116,9 +116,9 @@ export async function fetchMemberVotes(
       return await fetchSenateMemberVotes(member.lisId, congress, fallbackSession, limit, member.party);
     }
     
-    // For House members, try Congress.gov API (returns empty if not available)
+    // For House members, fetch from clerk.house.gov
     if (chamber === "House") {
-      return await fetchHouseMemberVotes(bioguideId, congress, limit);
+      return await fetchHouseMemberVotes(bioguideId, congress, limit, member?.party);
     }
     
     // If no chamber specified or no lisId for Senate, return empty

@@ -46,6 +46,7 @@ interface ParsedClerkVote {
   question: string;
   description: string;
   memberPosition: "Yes" | "No" | "Abstain" | null; // null = member not in this vote
+  partyTallies: Record<string, { yes: number; no: number }>; // party letter → vote counts
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -235,7 +236,21 @@ async function fetchClerkVoteXml(
       }
     }
 
-    return { rollNumber, date, question, description, memberPosition };
+    // Compute party tallies from all <recorded-vote> blocks
+    const partyTallies: Record<string, { yes: number; no: number }> = {};
+    const allVoteBlocks = [...xml.matchAll(/<recorded-vote>([\s\S]*?)<\/recorded-vote>/gi)];
+    for (const block of allVoteBlocks) {
+      const partyMatch = block[1].match(/party="([^"]+)"/i);
+      const voteMatch = block[1].match(/<vote>([^<]+)<\/vote>/i);
+      if (!partyMatch || !voteMatch) continue;
+      const p = partyMatch[1].trim().toUpperCase().charAt(0); // "D", "R", "I"
+      const pos = normalizeHousePosition(voteMatch[1]);
+      if (!partyTallies[p]) partyTallies[p] = { yes: 0, no: 0 };
+      if (pos === "Yes") partyTallies[p].yes++;
+      else if (pos === "No") partyTallies[p].no++;
+    }
+
+    return { rollNumber, date, question, description, memberPosition, partyTallies };
   } catch {
     return null;
   }
@@ -249,11 +264,13 @@ async function fetchClerkVoteXml(
  * @param bioguideId  Member's bioguide ID (e.g., "P000197")
  * @param congress    Congress number (default: 119)
  * @param limit       Maximum number of votes to return (default: 10)
+ * @param memberParty Member's party letter ("D", "R", "I") for computing party loyalty
  */
 export async function fetchHouseMemberVotes(
   bioguideId: string,
   congress: number = 119,
-  limit: number = 10
+  limit: number = 10,
+  memberParty?: string
 ): Promise<Vote[]> {
   try {
     const sessions = activeSessions(congress);
@@ -291,12 +308,23 @@ export async function fetchHouseMemberVotes(
       const description = parsed.description || parsed.question || "Roll Call Vote";
       const topic = inferTopicFromText(description) ?? "Other";
 
+      // Compute party majority position if we know the member's party
+      let partyMajorityPosition: "Yes" | "No" | "Abstain" | undefined;
+      if (memberParty) {
+        const partyKey = memberParty.toUpperCase().charAt(0);
+        const tally = parsed.partyTallies[partyKey];
+        if (tally && (tally.yes > 0 || tally.no > 0)) {
+          partyMajorityPosition = tally.yes >= tally.no ? "Yes" : "No";
+        }
+      }
+
       votes.push({
         id: `vote-${congress}-house-${rollNumber}`,
         topic,
         date: parsed.date || date,
         description,
         position: parsed.memberPosition,
+        partyMajorityPosition,
         sources: createHouseVoteSources(rollNumber, year, parsed.date || date),
       });
     }
