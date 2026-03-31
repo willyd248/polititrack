@@ -22,7 +22,7 @@ export function MemberPhoto({
   fallbackStyle,
 }: MemberPhotoProps) {
   const [imgError, setImgError] = useState(false);
-  const src = `https://theunitedstates.io/images/congress/225x275/${bioguideId}.jpg`;
+  const src = `https://raw.githubusercontent.com/unitedstates/images/gh-pages/congress/225x275/${bioguideId}.jpg`;
   const initials = name
     .split(" ")
     .filter(Boolean)
