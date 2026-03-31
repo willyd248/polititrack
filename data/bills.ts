@@ -7,6 +7,15 @@ export interface BillSponsor {
   state?: string;
 }
 
+export interface RelatedBill {
+  id: string;
+  title: string;
+  type: string;
+  number: string;
+  congress: number;
+  latestAction?: string;
+}
+
 export interface Bill {
   id: string;
   name: string;
@@ -16,7 +25,11 @@ export interface Bill {
   summaryText?: string; // Official summary text from Congress.gov (if available)
   sponsor?: BillSponsor;
   cosponsors?: BillSponsor[]; // Limited to 10
+  cosponsorCount?: number; // Total count (may exceed displayed list)
   sponsorSources?: Source[]; // Sources for sponsor/cosponsor data
+  subjects?: string[]; // Policy area and legislative subjects
+  relatedBills?: RelatedBill[];
+  textUrl?: string; // Link to full bill text on Congress.gov
   whatChangesForMostPeople: string[];
   whoIsImpacted: string[];
   argumentsFor: string[];
