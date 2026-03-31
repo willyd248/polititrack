@@ -234,7 +234,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
               {/* Sponsor */}
               {bill.sponsor && (
                 <div>
-                  <h3 className="mb-2 stat-label">Sponsor</h3>
+                  <h3 className="font-headline mb-2 stat-label">Sponsor</h3>
                   <Link
                     href={`/politician/${bill.sponsor.bioguideId}`}
                     className="block rounded-lg border border-[#EDEEEF] p-4 transition-colors hover:bg-[#F8F9FA] hover:border-[#C5C6CF]"
@@ -278,7 +278,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
               {/* Cosponsors */}
               {bill.cosponsors && bill.cosponsors.length > 0 && (
                 <div>
-                  <h3 className="mb-2 stat-label">
+                  <h3 className="font-headline mb-2 stat-label">
                     Cosponsors
                     {bill.cosponsorCount
                       ? ` (${bill.cosponsorCount}${bill.cosponsorCount > bill.cosponsors.length ? `, showing ${bill.cosponsors.length}` : ""})`
@@ -477,7 +477,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
 
       {/* Status & Next Steps */}
       <Card>
-        <h2 className="mb-4 font-headline text-xl font-bold text-[#041534]">
+        <h2 className="font-headline mb-4 font-headline text-xl font-bold text-[#041534]">
           Status & Next Steps
         </h2>
         {bill.statusAndNextSteps.length === 0 ? (
@@ -509,7 +509,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
       {/* Timeline */}
       {bill.timeline.length > 0 && (
         <Card>
-          <h2 className="mb-6 font-headline text-xl font-bold text-[#041534]">
+          <h2 className="font-headline mb-6 font-headline text-xl font-bold text-[#041534]">
             Timeline ({bill.timeline.length} event{bill.timeline.length !== 1 ? "s" : ""})
           </h2>
           <div className="relative">
@@ -593,7 +593,7 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
       {/* Related Bills */}
       {bill.relatedBills && bill.relatedBills.length > 0 && (
         <Card>
-          <h2 className="mb-4 font-headline text-xl font-bold text-[#041534]">
+          <h2 className="font-headline mb-4 font-headline text-xl font-bold text-[#041534]">
             Related Bills ({bill.relatedBills.length})
           </h2>
           <div className="space-y-2">

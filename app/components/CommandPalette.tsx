@@ -252,7 +252,7 @@ export default function CommandPalette() {
                             <Chip>
                               {result.type === "politician" ? "Politician" : "Bill"}
                             </Chip>
-                            <h3 className="text-sm font-semibold text-[#191C1D] truncate">
+                            <h3 className="font-headline text-sm font-semibold text-[#191C1D] truncate">
                               {result.title}
                             </h3>
                           </div>

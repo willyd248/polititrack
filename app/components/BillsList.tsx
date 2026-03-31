@@ -25,7 +25,7 @@ export default function BillsList({ bills }: BillsListProps) {
         <Card key={bill.id} clickable>
           <Link href={`/bill/${bill.id}`} className="block space-y-3">
             <div className="flex items-start justify-between gap-3">
-              <h3 className="text-xl font-semibold text-[#041534]">
+              <h3 className="font-headline text-xl font-semibold text-[#041534]">
                 {bill.name}
               </h3>
               <span

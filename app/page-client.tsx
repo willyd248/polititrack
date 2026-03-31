@@ -37,7 +37,7 @@ function partyLabel(party: string): string {
 function billStatusStyle(status: string): string {
   if (status === "Passed") return "bg-green-50 text-green-700 border-green-200";
   if (status === "Failed") return "bg-red-50 text-red-700 border-red-200";
-  return "bg-gray-50 text-gray-600 border-gray-200";
+  return "bg-surface-container-low text-on-surface-variant border-outline-variant";
 }
 
 export default function HomeClient({
@@ -115,7 +115,7 @@ export default function HomeClient({
             119th Congress · Nonpartisan · Source-cited
           </p>
 
-          <h1 className="text-3xl sm:text-5xl font-bold text-white leading-tight mb-4">
+          <h1 className="font-headline text-3xl sm:text-5xl font-bold text-white leading-tight mb-4">
             What are your representatives<br className="hidden sm:block" /> doing right now?
           </h1>
           <p className="text-base sm:text-lg text-blue-100/70 max-w-2xl mb-8 leading-relaxed">
@@ -217,7 +217,7 @@ export default function HomeClient({
                   <Link
                     key={id}
                     href={`/politician/${id}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant bg-white px-3 py-1.5 text-sm text-on-surface hover:bg-surface-container-low transition-colors shadow-sm"
                   >
                     <span className="h-2 w-2 rounded-full bg-[#041534]" />
                     {name}
@@ -231,7 +231,7 @@ export default function HomeClient({
                   <Link
                     key={id}
                     href={`/bill/${id}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant bg-white px-3 py-1.5 text-sm text-on-surface hover:bg-surface-container-low transition-colors shadow-sm"
                   >
                     <span className="h-2 w-2 rounded-full bg-[#A63744]" />
                     {bill.name}
@@ -247,7 +247,7 @@ export default function HomeClient({
           <div className="flex items-start justify-between mb-5">
             <div>
               <SectionHeader label="Legislation" title="Trending Bills" />
-              <p className="text-sm text-gray-500 -mt-3">
+              <p className="text-sm text-on-surface-variant -mt-3">
                 Bills with recent action in the 119th Congress
               </p>
             </div>
@@ -264,10 +264,10 @@ export default function HomeClient({
                 <Link
                   key={bill.id}
                   href={`/bill/${bill.id}`}
-                  className="group rounded-xl border border-gray-100 bg-white p-5 shadow-sm hover:shadow-md hover:border-gray-200 transition-all block"
+                  className="group rounded-xl border border-surface-container bg-white p-5 shadow-sm hover:shadow-md hover:border-outline-variant transition-all block"
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
-                    <h3 className="text-sm font-semibold text-gray-900 leading-snug group-hover:text-[#041534] transition-colors flex-1">
+                    <h3 className="font-headline text-sm font-semibold text-primary leading-snug group-hover:text-[#041534] transition-colors flex-1">
                       {bill.name}
                     </h3>
                     <span
@@ -277,11 +277,11 @@ export default function HomeClient({
                     </span>
                   </div>
                   {bill.summary[0] && (
-                    <p className="text-xs leading-relaxed text-gray-500 mb-3 line-clamp-2">
+                    <p className="text-xs leading-relaxed text-on-surface-variant mb-3 line-clamp-2">
                       {bill.summary[0]}
                     </p>
                   )}
-                  <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                  <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-wide text-outline">
                     <span>{bill.timeline.length} events</span>
                     {bill.timeline.length > 0 && (
                       <span>
@@ -293,8 +293,8 @@ export default function HomeClient({
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center">
-              <p className="text-sm text-gray-400">No bills available at this time.</p>
+            <div className="rounded-xl border border-dashed border-outline-variant p-8 text-center">
+              <p className="text-sm text-outline">No bills available at this time.</p>
             </div>
           )}
         </section>
@@ -304,7 +304,7 @@ export default function HomeClient({
           <div className="flex items-start justify-between mb-5">
             <div>
               <SectionHeader label="119th Congress" title="Members" />
-              <p className="text-sm text-gray-500 -mt-3">
+              <p className="text-sm text-on-surface-variant -mt-3">
                 Browse representatives and senators
               </p>
             </div>
@@ -325,7 +325,7 @@ export default function HomeClient({
                 return (
                   <div
                     key={m.id}
-                    className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-all"
+                    className="rounded-xl border border-surface-container bg-white p-4 shadow-sm hover:shadow-md transition-all"
                   >
                     <div className="flex items-start gap-3 mb-3">
                       <MemberPhoto
@@ -339,11 +339,11 @@ export default function HomeClient({
                       <div className="min-w-0 flex-1">
                         <Link
                           href={`/politician/${m.bioguideId}`}
-                          className="block text-sm font-semibold text-gray-900 hover:text-[#041534] truncate"
+                          className="block text-sm font-semibold text-primary hover:text-[#041534] truncate"
                         >
                           {m.fullName || "Unknown"}
                         </Link>
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="text-xs text-outline mt-0.5">
                           {m.chamber} · {stateNameToCode(m.state || "")}
                           {m.district ? ` D-${m.district}` : ""}
                         </p>
@@ -362,14 +362,14 @@ export default function HomeClient({
                         className={`rounded px-2 py-1 text-[10px] font-semibold transition-all ${
                           compared
                             ? "bg-[#A63744] text-white"
-                            : "border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700"
+                            : "border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface"
                         }`}
                       >
                         {compared ? "✓" : "Compare"}
                       </button>
                       <Link
                         href={`/politician/${m.bioguideId}`}
-                        className="rounded px-2 py-1 text-[10px] font-semibold border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-all"
+                        className="rounded px-2 py-1 text-[10px] font-semibold border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface transition-all"
                       >
                         View
                       </Link>
@@ -381,7 +381,7 @@ export default function HomeClient({
             <div className="mt-6 text-center">
               <Link
                 href="/members"
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-[#041534] shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+                className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-6 py-3 text-sm font-semibold text-[#041534] shadow-sm hover:shadow-md hover:border-outline-variant transition-all"
               >
                 View All {displayMembers.length > 12 ? `${displayMembers.length} ` : ""}Members
                 <span aria-hidden="true">&rarr;</span>
@@ -389,11 +389,11 @@ export default function HomeClient({
             </div>
             </>
           ) : (
-            <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center space-y-4">
-              <p className="text-sm text-gray-400">Member data is loading from Congress.gov. Browse all members on the full directory.</p>
+            <div className="rounded-xl border border-dashed border-outline-variant p-8 text-center space-y-4">
+              <p className="text-sm text-outline">Member data is loading from Congress.gov. Browse all members on the full directory.</p>
               <Link
                 href="/members"
-                className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-semibold text-[#041534] shadow-sm hover:shadow-md hover:border-gray-300 transition-all"
+                className="inline-flex items-center gap-2 rounded-lg border border-outline-variant bg-white px-6 py-3 text-sm font-semibold text-[#041534] shadow-sm hover:shadow-md hover:border-outline-variant transition-all"
               >
                 View All Members
                 <span aria-hidden="true">&rarr;</span>
@@ -425,11 +425,11 @@ export default function HomeClient({
             ].map((item) => (
               <div
                 key={item.title}
-                className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm"
+                className="rounded-xl border border-surface-container bg-white p-5 shadow-sm"
               >
                 <div className="text-2xl mb-3">{item.icon}</div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1.5">{item.title}</h3>
-                <p className="text-xs leading-relaxed text-gray-500">{item.body}</p>
+                <h3 className="font-headline text-sm font-semibold text-primary mb-1.5">{item.title}</h3>
+                <p className="text-xs leading-relaxed text-on-surface-variant">{item.body}</p>
               </div>
             ))}
           </div>
@@ -440,7 +440,7 @@ export default function HomeClient({
           <p className="text-xs font-semibold uppercase tracking-widest text-blue-200/50 mb-3">
             Stay Informed
           </p>
-          <h2 className="text-2xl font-bold text-white mb-2">Weekly transparency briefing</h2>
+          <h2 className="font-headline text-2xl font-bold text-white mb-2">Weekly transparency briefing</h2>
           <p className="text-sm text-blue-100/70 mb-6 max-w-lg leading-relaxed">
             Get a weekly breakdown of the votes that matter, who funded them, and what it means for
             you. No spin. No ads.
@@ -488,8 +488,8 @@ export default function HomeClient({
 function SectionHeader({ label, title }: { label: string; title: string }) {
   return (
     <div className="mb-4">
-      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">{label}</p>
-      <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+      <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-0.5">{label}</p>
+      <h2 className="font-headline text-2xl font-bold text-primary">{title}</h2>
     </div>
   );
 }

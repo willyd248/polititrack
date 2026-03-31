@@ -68,7 +68,7 @@ function alignmentBg(a: InsightConnection["alignment"]): string {
   if (a === "High") return "bg-red-50 border-red-200";
   if (a === "Moderate") return "bg-amber-50 border-amber-200";
   if (a === "Low") return "bg-green-50 border-green-200";
-  return "bg-gray-50 border-gray-200";
+  return "bg-surface-container-low border-outline-variant";
 }
 
 function alignmentColor(a: InsightConnection["alignment"]): string {
@@ -92,7 +92,7 @@ const NAV_SECTIONS = [
 
 function SideNav({ activeSection }: { activeSection: string }) {
   return (
-    <aside className="hidden lg:flex fixed left-0 top-16 h-[calc(100vh-4rem)] w-44 flex-col border-r border-gray-200 bg-white z-10">
+    <aside className="hidden lg:flex fixed left-0 top-16 h-[calc(100vh-4rem)] w-44 flex-col border-r border-outline-variant bg-white z-10">
       <nav className="flex-1 px-3 py-6 space-y-0.5">
         {NAV_SECTIONS.map((s) => (
           <button
@@ -101,7 +101,7 @@ function SideNav({ activeSection }: { activeSection: string }) {
             className={`block w-full text-left px-3 py-2 rounded text-sm font-medium transition-all duration-150 ${
               activeSection === s.id
                 ? "bg-[#041534] text-white"
-                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+                : "text-on-surface-variant hover:text-primary hover:bg-surface-container-low"
             }`}
           >
             {s.label}
@@ -109,8 +109,8 @@ function SideNav({ activeSection }: { activeSection: string }) {
         ))}
       </nav>
       <div className="px-4 pb-6">
-        <div className="h-px bg-gray-100 mb-3" />
-        <p className="text-[10px] text-gray-400 leading-relaxed">
+        <div className="h-px bg-surface-container mb-3" />
+        <p className="text-[10px] text-outline leading-relaxed">
           Congress.gov · OpenFEC · Claude AI
         </p>
       </div>
@@ -288,7 +288,7 @@ export default function PoliticianPageClient({
                 />
 
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                  <h1 className="font-headline text-3xl font-bold tracking-tight text-white sm:text-4xl">
                     {displayName}
                   </h1>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -387,8 +387,8 @@ export default function PoliticianPageClient({
           {/* ── FOLLOW THE MONEY ──────────────────────────────────────────── */}
           <section id="follow-money" className="scroll-mt-20">
             <SectionLabel label="Investigation" accent />
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">Follow the Money</h2>
-            <p className="text-sm text-gray-500 mb-5">
+            <h2 className="font-headline text-2xl font-bold text-primary mb-1">Follow the Money</h2>
+            <p className="text-sm text-on-surface-variant mb-5">
               AI-generated analysis connecting campaign donors to voting patterns
             </p>
 
@@ -417,7 +417,7 @@ export default function PoliticianPageClient({
                     {insights.connections.map((conn, i) => (
                       <div key={i} className={`rounded-lg border p-4 ${alignmentBg(conn.alignment)}`}>
                         <div className="flex items-start justify-between gap-2 mb-2">
-                          <span className="text-sm font-semibold text-gray-900">{conn.industry}</span>
+                          <span className="text-sm font-semibold text-primary">{conn.industry}</span>
                           <span
                             className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
                             style={{ background: alignmentColor(conn.alignment) }}
@@ -425,8 +425,8 @@ export default function PoliticianPageClient({
                             {conn.alignment}
                           </span>
                         </div>
-                        <p className="text-xs font-medium text-gray-500 mb-1.5">{conn.amount}</p>
-                        <p className="text-xs leading-relaxed text-gray-600">{conn.votingPattern}</p>
+                        <p className="text-xs font-medium text-on-surface-variant mb-1.5">{conn.amount}</p>
+                        <p className="text-xs leading-relaxed text-on-surface-variant">{conn.votingPattern}</p>
                       </div>
                     ))}
                   </div>
@@ -434,13 +434,13 @@ export default function PoliticianPageClient({
 
                 {/* Notable facts */}
                 {insights.notable.length > 0 && (
-                  <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">
+                  <div className="rounded-lg border border-surface-container bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-outline mb-3">
                       Notable
                     </p>
                     <ul className="space-y-2.5">
                       {insights.notable.map((fact, i) => (
-                        <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
+                        <li key={i} className="flex items-start gap-2.5 text-sm text-on-surface">
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#A63744]" />
                           {fact}
                         </li>
@@ -449,15 +449,15 @@ export default function PoliticianPageClient({
                   </div>
                 )}
 
-                <p className="text-[11px] text-gray-400">
+                <p className="text-[11px] text-outline">
                   AI-generated by Claude · Cross-references OpenFEC + Congress.gov data
                 </p>
               </div>
             )}
 
             {!insightsLoading && !insights && (
-              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-8 text-center">
-                <p className="text-sm text-gray-400">
+              <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-low p-8 text-center">
+                <p className="text-sm text-outline">
                   {!member
                     ? "AI insights are available for real Congress members."
                     : moneyLoading
@@ -475,8 +475,8 @@ export default function PoliticianPageClient({
             <div className="flex items-start justify-between mb-5">
               <div>
                 <SectionLabel label="Transparency" />
-                <h2 className="text-2xl font-bold text-gray-900">Where the Money Comes From</h2>
-                <p className="text-sm text-gray-500 mt-0.5">Federal Election Commission campaign finance data</p>
+                <h2 className="font-headline text-2xl font-bold text-primary">Where the Money Comes From</h2>
+                <p className="text-sm text-on-surface-variant mt-0.5">Federal Election Commission campaign finance data</p>
               </div>
               {moneyData && (
                 <button
@@ -487,7 +487,7 @@ export default function PoliticianPageClient({
                       sources:    moneyData.sources,
                     })
                   }
-                  className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-700 underline underline-offset-2 mt-1"
+                  className="shrink-0 text-xs font-medium text-outline hover:text-on-surface underline underline-offset-2 mt-1"
                 >
                   Sources
                 </button>
@@ -505,17 +505,17 @@ export default function PoliticianPageClient({
             {moneyData && (
               <div className="space-y-4">
                 {/* Totals */}
-                <div className="grid grid-cols-3 rounded-xl border border-gray-100 bg-white shadow-sm divide-x divide-gray-100 overflow-hidden">
+                <div className="grid grid-cols-3 rounded-xl border border-surface-container bg-white shadow-sm divide-x divide-surface-container overflow-hidden">
                   {[
                     { label: "Total Raised",  value: formatMoney(moneyData.totals.raised) },
                     { label: "Total Spent",    value: formatMoney(moneyData.totals.spent) },
                     { label: "Cash on Hand",   value: formatMoney(moneyData.totals.cashOnHand) },
                   ].map((stat) => (
                     <div key={stat.label} className="p-4 sm:p-5">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-outline">
                         {stat.label}
                       </p>
-                      <p className="mt-1.5 text-2xl font-bold text-gray-900 sm:text-3xl">
+                      <p className="mt-1.5 text-2xl font-bold text-primary sm:text-3xl">
                         {stat.value}
                       </p>
                     </div>
@@ -524,36 +524,36 @@ export default function PoliticianPageClient({
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   {/* Top Contributors */}
-                  <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+                  <div className="rounded-xl border border-surface-container bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-outline mb-4">
                       Top Contributors
                     </p>
                     {moneyData.topContributors.length > 0 ? (
                       <ul className="space-y-2.5">
                         {moneyData.topContributors.slice(0, 8).map((c, i) => (
                           <li key={i} className="flex items-center justify-between">
-                            <span className="flex items-center gap-2 text-sm text-gray-700 min-w-0">
-                              <span className="shrink-0 w-5 text-center text-xs font-bold text-gray-300">
+                            <span className="flex items-center gap-2 text-sm text-on-surface min-w-0">
+                              <span className="shrink-0 w-5 text-center text-xs font-bold text-outline-variant">
                                 {i + 1}
                               </span>
                               <span className="truncate">{c.name}</span>
                             </span>
-                            <span className="ml-3 shrink-0 text-sm font-bold text-gray-900">
+                            <span className="ml-3 shrink-0 text-sm font-bold text-primary">
                               {c.amount}
                             </span>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-outline">
                         Detailed contributor data not available via FEC API.
                       </p>
                     )}
                   </div>
 
                   {/* Industry Breakdown */}
-                  <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+                  <div className="rounded-xl border border-surface-container bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-outline mb-4">
                       Industry Breakdown
                     </p>
                     {moneyData.industryBreakdown.length > 0 ? (
@@ -563,10 +563,10 @@ export default function PoliticianPageClient({
                           return (
                             <div key={i}>
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm text-gray-700">{ind.industry}</span>
-                                <span className="text-sm font-bold text-gray-900">{pct}%</span>
+                                <span className="text-sm text-on-surface">{ind.industry}</span>
+                                <span className="text-sm font-bold text-primary">{pct}%</span>
                               </div>
-                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container">
                                 <div
                                   className="h-full rounded-full transition-all duration-700"
                                   style={{
@@ -581,7 +581,7 @@ export default function PoliticianPageClient({
                         })}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-outline">
                         Industry breakdown not available via FEC API.
                       </p>
                     )}
@@ -592,13 +592,13 @@ export default function PoliticianPageClient({
 
             {/* Mock fallback when no real data */}
             {!moneyData && !moneyLoading && !moneyError && fecCandidateId && (
-              <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-                <p className="text-sm text-gray-500 mb-4">{politician.money.moduleSummary}</p>
+              <div className="rounded-xl border border-surface-container bg-white p-5 shadow-sm">
+                <p className="text-sm text-on-surface-variant mb-4">{politician.money.moduleSummary}</p>
                 <ul className="space-y-2">
                   {politician.money.topContributors.slice(0, 5).map((c, i) => (
                     <li key={i} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-700">{c.name}</span>
-                      <span className="font-bold text-gray-900">{c.amount}</span>
+                      <span className="text-on-surface">{c.name}</span>
+                      <span className="font-bold text-primary">{c.amount}</span>
                     </li>
                   ))}
                 </ul>
@@ -611,8 +611,8 @@ export default function PoliticianPageClient({
             <div className="flex items-start justify-between mb-5">
               <div>
                 <SectionLabel label="Accountability" />
-                <h2 className="text-2xl font-bold text-gray-900">Voting Record</h2>
-                <p className="text-sm text-gray-500 mt-0.5">Roll-call votes in the 119th Congress</p>
+                <h2 className="font-headline text-2xl font-bold text-primary">Voting Record</h2>
+                <p className="text-sm text-on-surface-variant mt-0.5">Roll-call votes in the 119th Congress</p>
               </div>
               {memberVotes.length > 0 && (
                 <button
@@ -623,7 +623,7 @@ export default function PoliticianPageClient({
                       sources:    memberVotes.flatMap((v) => v.sources),
                     })
                   }
-                  className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-700 underline underline-offset-2 mt-1"
+                  className="shrink-0 text-xs font-medium text-outline hover:text-on-surface underline underline-offset-2 mt-1"
                 >
                   Sources
                 </button>
@@ -631,14 +631,14 @@ export default function PoliticianPageClient({
             </div>
 
             {memberVotes.length > 0 ? (
-              <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+              <div className="rounded-xl border border-surface-container bg-white shadow-sm overflow-hidden">
                 {/* Mobile: card list */}
-                <div className="sm:hidden divide-y divide-gray-50">
+                <div className="sm:hidden divide-y divide-surface-container-low">
                   {memberVotes.slice(0, 10).map((vote, i) => (
                     <div key={i} className="px-4 py-3 flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-800 line-clamp-2">{vote.description}</p>
-                        <p className="mt-0.5 text-xs text-gray-400">{vote.date}</p>
+                        <p className="text-sm text-on-surface line-clamp-2">{vote.description}</p>
+                        <p className="mt-0.5 text-xs text-outline">{vote.date}</p>
                       </div>
                       <VoteBadge position={vote.position} />
                     </div>
@@ -647,35 +647,35 @@ export default function PoliticianPageClient({
                 {/* Desktop: table */}
                 <table className="hidden sm:table w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
-                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                    <tr className="border-b border-surface-container bg-surface-container-low/50">
+                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-outline">
                         Bill / Description
                       </th>
-                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-outline">
                         Topic
                       </th>
-                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-outline">
                         Date
                       </th>
-                      <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                      <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-outline">
                         Vote
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50">
+                  <tbody className="divide-y divide-surface-container-low">
                     {memberVotes.slice(0, 10).map((vote, i) => (
-                      <tr key={i} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-4 py-3 text-gray-800 max-w-xs">
+                      <tr key={i} className="hover:bg-surface-container-low/50 transition-colors">
+                        <td className="px-4 py-3 text-on-surface max-w-xs">
                           <span className="line-clamp-2">{vote.description}</span>
                         </td>
                         <td className="px-4 py-3">
                           {vote.topic && (
-                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                            <span className="rounded-full bg-surface-container px-2 py-0.5 text-xs text-on-surface-variant">
                               {vote.topic}
                             </span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{vote.date}</td>
+                        <td className="px-4 py-3 text-xs text-outline whitespace-nowrap">{vote.date}</td>
                         <td className="px-4 py-3 text-right">
                           <VoteBadge position={vote.position} />
                         </td>
@@ -687,12 +687,12 @@ export default function PoliticianPageClient({
             ) : member && !useMockData ? (
               <EmptyCard text="No roll-call votes found in the current dataset for this member." />
             ) : (
-              <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-                <p className="text-sm text-gray-500 mb-4">{politician.votes.moduleSummary}</p>
-                <div className="divide-y divide-gray-50">
+              <div className="rounded-xl border border-surface-container bg-white p-5 shadow-sm">
+                <p className="text-sm text-on-surface-variant mb-4">{politician.votes.moduleSummary}</p>
+                <div className="divide-y divide-surface-container-low">
                   {politician.votes.votes.slice(0, 6).map((vote, i) => (
                     <div key={i} className="flex items-center justify-between py-2.5">
-                      <span className="text-sm text-gray-700 flex-1 mr-4 line-clamp-1">
+                      <span className="text-sm text-on-surface flex-1 mr-4 line-clamp-1">
                         {vote.description}
                       </span>
                       <VoteBadge position={vote.position} />
@@ -706,28 +706,28 @@ export default function PoliticianPageClient({
           {/* ── LEGISLATION ──────────────────────────────────────────────── */}
           <section id="legislation" className="scroll-mt-20">
             <SectionLabel label="Legislative Activity" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-1">Bills & Cosponsorship</h2>
-            <p className="text-sm text-gray-500 mb-5">
+            <h2 className="font-headline text-2xl font-bold text-primary mb-1">Bills & Cosponsorship</h2>
+            <p className="text-sm text-on-surface-variant mb-5">
               Legislation sponsored and cosponsored in the 119th Congress
             </p>
 
             {(sponsoredBills?.length || cosponsoredBills?.length) ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 {sponsoredBills && sponsoredBills.length > 0 && (
-                  <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+                  <div className="rounded-xl border border-surface-container bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-outline mb-4">
                       Sponsored Bills ({sponsoredBills.length})
                     </p>
                     <div className="space-y-3">
                       {sponsoredBills.map((bill, i) => (
-                        <div key={i} className="border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                        <div key={i} className="border-b border-surface-container-low pb-3 last:border-0 last:pb-0">
                           <Link
                             href={`/bill/${bill.id}`}
                             className="text-sm font-medium text-[#041534] hover:text-[#1B2A4A] hover:underline leading-snug block"
                           >
                             {bill.title}
                           </Link>
-                          <p className="mt-0.5 text-xs text-gray-400">
+                          <p className="mt-0.5 text-xs text-outline">
                             {bill.type} {bill.number}
                             {bill.latestAction && ` · ${bill.latestAction}`}
                           </p>
@@ -738,20 +738,20 @@ export default function PoliticianPageClient({
                 )}
 
                 {cosponsoredBills && cosponsoredBills.length > 0 && (
-                  <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+                  <div className="rounded-xl border border-surface-container bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-outline mb-4">
                       Cosponsored Bills ({cosponsoredBills.length})
                     </p>
                     <div className="space-y-3">
                       {cosponsoredBills.map((bill, i) => (
-                        <div key={i} className="border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                        <div key={i} className="border-b border-surface-container-low pb-3 last:border-0 last:pb-0">
                           <Link
                             href={`/bill/${bill.id}`}
                             className="text-sm font-medium text-[#041534] hover:text-[#1B2A4A] hover:underline leading-snug block"
                           >
                             {bill.title}
                           </Link>
-                          <p className="mt-0.5 text-xs text-gray-400">
+                          <p className="mt-0.5 text-xs text-outline">
                             {bill.type} {bill.number}
                             {bill.latestAction && ` · ${bill.latestAction}`}
                           </p>
@@ -771,8 +771,8 @@ export default function PoliticianPageClient({
             <div className="flex items-start justify-between mb-5">
               <div>
                 <SectionLabel label="Public Record" />
-                <h2 className="text-2xl font-bold text-gray-900">Statements & Press Releases</h2>
-                <p className="text-sm text-gray-500 mt-0.5">Official statements from the member&apos;s office</p>
+                <h2 className="font-headline text-2xl font-bold text-primary">Statements & Press Releases</h2>
+                <p className="text-sm text-on-surface-variant mt-0.5">Official statements from the member&apos;s office</p>
               </div>
               {displayStatements.length > 0 && (
                 <button
@@ -783,7 +783,7 @@ export default function PoliticianPageClient({
                       sources:    displayStatements.flatMap((s) => s.sources),
                     })
                   }
-                  className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-700 underline underline-offset-2 mt-1"
+                  className="shrink-0 text-xs font-medium text-outline hover:text-on-surface underline underline-offset-2 mt-1"
                 >
                   Sources
                 </button>
@@ -793,23 +793,23 @@ export default function PoliticianPageClient({
             {statementsLoading && <LoadingCard text="Loading statements…" />}
 
             {!statementsLoading && displayStatements.length > 0 && (
-              <div className="rounded-xl border border-gray-100 bg-white shadow-sm divide-y divide-gray-50">
+              <div className="rounded-xl border border-surface-container bg-white shadow-sm divide-y divide-surface-container-low">
                 {displayStatements.slice(0, 6).map((stmt, i) => (
                   <div key={i} className="px-5 py-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 leading-snug">{stmt.title}</p>
+                        <p className="text-sm font-semibold text-primary leading-snug">{stmt.title}</p>
                         {stmt.text && (
-                          <p className="mt-1 text-xs leading-relaxed text-gray-500 line-clamp-2">{stmt.text}</p>
+                          <p className="mt-1 text-xs leading-relaxed text-on-surface-variant line-clamp-2">{stmt.text}</p>
                         )}
                       </div>
                       <div className="shrink-0 text-right">
                         {stmt.topic && (
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 block mb-1">
+                          <span className="rounded-full bg-surface-container px-2 py-0.5 text-xs text-on-surface-variant block mb-1">
                             {stmt.topic}
                           </span>
                         )}
-                        <p className="text-xs text-gray-400">{stmt.date}</p>
+                        <p className="text-xs text-outline">{stmt.date}</p>
                       </div>
                     </div>
                   </div>
@@ -823,12 +823,12 @@ export default function PoliticianPageClient({
           </section>
 
           {/* Footer */}
-          <div className="border-t border-gray-100 pt-6 pb-10">
-            <p className="text-xs text-gray-400 leading-relaxed">
+          <div className="border-t border-surface-container pt-6 pb-10">
+            <p className="text-xs text-outline leading-relaxed">
               Data from{" "}
-              <a href="https://congress.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Congress.gov</a>
+              <a href="https://congress.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-on-surface-variant">Congress.gov</a>
               {" "}(119th Congress) and the{" "}
-              <a href="https://www.fec.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Federal Election Commission</a>.
+              <a href="https://www.fec.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-on-surface-variant">Federal Election Commission</a>.
               AI insights by Claude (Anthropic). All data is public record.
             </p>
           </div>
@@ -863,7 +863,7 @@ function VoteBadge({ position }: { position: string }) {
     );
   }
   return (
-    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-500">
+    <span className="rounded-full bg-surface-container px-2.5 py-0.5 text-xs font-semibold text-on-surface-variant">
       {position || "Abstain"}
     </span>
   );
@@ -871,9 +871,9 @@ function VoteBadge({ position }: { position: string }) {
 
 function LoadingCard({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-      <div className="flex items-center gap-3 text-gray-400">
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-gray-400" />
+    <div className="rounded-xl border border-surface-container bg-white p-6 shadow-sm">
+      <div className="flex items-center gap-3 text-outline">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-outline-variant border-t-outline" />
         <span className="text-sm">{text}</span>
       </div>
     </div>
@@ -890,8 +890,8 @@ function AlertCard({ text, variant = "warn" }: { text: string; variant?: "warn" 
 
 function EmptyCard({ text }: { text: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center">
-      <p className="text-sm text-gray-400">{text}</p>
+    <div className="rounded-xl border border-dashed border-outline-variant p-8 text-center">
+      <p className="text-sm text-outline">{text}</p>
     </div>
   );
 }

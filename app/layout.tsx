@@ -80,7 +80,7 @@ export default function RootLayout({
                     <main className="container-content mx-auto px-6 py-12 pb-24">
                       {children}
                     </main>
-                    <footer className="border-t border-gray-200 py-8 mt-4">
+                    <footer className="border-t border-outline-variant py-8 mt-4">
                       <div className="container-content mx-auto px-6 space-y-5">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div>
@@ -96,11 +96,11 @@ export default function RootLayout({
                             ☕ Buy me a coffee
                           </a>
                         </div>
-                        <div className="border-t border-gray-200 pt-4 flex items-center justify-between text-xs text-gray-400">
+                        <div className="border-t border-outline-variant pt-4 flex items-center justify-between text-xs text-outline">
                           <span>© 2026 PolitiTrack</span>
                           <nav className="flex gap-4">
-                            <a href="/privacy-policy.html" className="hover:text-gray-600 transition-colors">Privacy Policy</a>
-                            <a href="/terms.html" className="hover:text-gray-600 transition-colors">Terms of Service</a>
+                            <a href="/privacy-policy.html" className="hover:text-on-surface-variant transition-colors">Privacy Policy</a>
+                            <a href="/terms.html" className="hover:text-on-surface-variant transition-colors">Terms of Service</a>
                           </nav>
                         </div>
                       </div>

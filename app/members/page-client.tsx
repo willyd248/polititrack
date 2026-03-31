@@ -109,9 +109,9 @@ export default function MembersClient({
   if (allMembers.length === 0) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Members of Congress</h1>
-        <div className="rounded-xl border border-dashed border-gray-200 p-12 text-center">
-          <p className="text-sm text-gray-500">
+        <h1 className="font-headline text-2xl font-bold text-primary">Members of Congress</h1>
+        <div className="rounded-xl border border-dashed border-outline-variant p-12 text-center">
+          <p className="text-sm text-on-surface-variant">
             {useMockData
               ? "Member data is temporarily unavailable. Please try again later."
               : "Loading members..."}
@@ -128,13 +128,13 @@ export default function MembersClient({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-outline mb-0.5">
           119th Congress
         </p>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="font-headline text-2xl font-bold text-primary">
           Members of Congress
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-on-surface-variant mt-1">
           {allMembers.length} members — {senateCount} Senators, {houseCount} Representatives
         </p>
       </div>
@@ -144,7 +144,7 @@ export default function MembersClient({
         {/* Search */}
         <div className="relative flex-1 min-w-0">
           <svg
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-outline"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -161,7 +161,7 @@ export default function MembersClient({
             placeholder="Search by name..."
             value={search}
             onChange={(e) => updateFilter(setSearch, e.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
+            className="w-full rounded-lg border border-outline-variant bg-white py-2.5 pl-10 pr-4 text-sm text-primary placeholder:text-outline focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
           />
         </div>
 
@@ -171,7 +171,7 @@ export default function MembersClient({
           onChange={(e) =>
             updateFilter(setChamber, e.target.value as "All" | "House" | "Senate")
           }
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
+          className="rounded-lg border border-outline-variant bg-white px-3 py-2.5 text-sm text-on-surface focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
         >
           <option value="All">All Chambers</option>
           <option value="Senate">Senate</option>
@@ -184,7 +184,7 @@ export default function MembersClient({
           onChange={(e) =>
             updateFilter(setParty, e.target.value as "All" | "D" | "R" | "I")
           }
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
+          className="rounded-lg border border-outline-variant bg-white px-3 py-2.5 text-sm text-on-surface focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
         >
           <option value="All">All Parties</option>
           <option value="D">Democrat</option>
@@ -196,7 +196,7 @@ export default function MembersClient({
         <select
           value={state}
           onChange={(e) => updateFilter(setState, e.target.value)}
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
+          className="rounded-lg border border-outline-variant bg-white px-3 py-2.5 text-sm text-on-surface focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
         >
           <option value="All">All States</option>
           {STATES.map((s) => (
@@ -212,7 +212,7 @@ export default function MembersClient({
           onChange={(e) =>
             updateFilter(setSortBy, e.target.value as "name" | "state")
           }
-          className="rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
+          className="rounded-lg border border-outline-variant bg-white px-3 py-2.5 text-sm text-on-surface focus:border-[#041534] focus:outline-none focus:ring-1 focus:ring-[#041534]"
         >
           <option value="name">Sort: Name</option>
           <option value="state">Sort: State</option>
@@ -220,7 +220,7 @@ export default function MembersClient({
       </div>
 
       {/* Results count */}
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-outline">
         Showing {(safePage - 1) * PAGE_SIZE + 1}–
         {Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}{" "}
         members
@@ -236,7 +236,7 @@ export default function MembersClient({
             return (
               <div
                 key={m.id}
-                className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm hover:shadow-md transition-all"
+                className="rounded-xl border border-surface-container bg-white p-4 shadow-sm hover:shadow-md transition-all"
               >
                 <div className="flex items-start gap-3 mb-3">
                   <MemberPhoto
@@ -250,11 +250,11 @@ export default function MembersClient({
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/politician/${m.bioguideId}`}
-                      className="block text-sm font-semibold text-gray-900 hover:text-[#041534] truncate"
+                      className="block text-sm font-semibold text-primary hover:text-[#041534] truncate"
                     >
                       {m.fullName || "Unknown"}
                     </Link>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-xs text-outline mt-0.5">
                       {m.chamber} · {stateNameToCode(m.state || "")}
                       {m.district ? ` D-${m.district}` : ""}
                     </p>
@@ -275,14 +275,14 @@ export default function MembersClient({
                     className={`rounded px-2 py-1 text-[10px] font-semibold transition-all ${
                       compared
                         ? "bg-[#A63744] text-white"
-                        : "border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700"
+                        : "border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface"
                     }`}
                   >
                     {compared ? "~" : "Compare"}
                   </button>
                   <Link
                     href={`/politician/${m.bioguideId}`}
-                    className="rounded px-2 py-1 text-[10px] font-semibold border border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-all"
+                    className="rounded px-2 py-1 text-[10px] font-semibold border border-outline-variant text-on-surface-variant hover:border-outline hover:text-on-surface transition-all"
                   >
                     View
                   </Link>
@@ -292,8 +292,8 @@ export default function MembersClient({
           })}
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-gray-200 p-12 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="rounded-xl border border-dashed border-outline-variant p-12 text-center">
+          <p className="text-sm text-on-surface-variant">
             No members match your filters. Try adjusting your search.
           </p>
         </div>
@@ -305,7 +305,7 @@ export default function MembersClient({
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={safePage <= 1}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-low disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Previous
           </button>
@@ -331,7 +331,7 @@ export default function MembersClient({
 
             return pages.map((p, idx) =>
               p === "..." ? (
-                <span key={`dots-${idx}`} className="px-2 text-sm text-gray-400">
+                <span key={`dots-${idx}`} className="px-2 text-sm text-outline">
                   ...
                 </span>
               ) : (
@@ -341,7 +341,7 @@ export default function MembersClient({
                   className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     p === safePage
                       ? "bg-[#041534] text-white"
-                      : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                      : "border border-outline-variant bg-white text-on-surface hover:bg-surface-container-low"
                   }`}
                 >
                   {p}
@@ -353,7 +353,7 @@ export default function MembersClient({
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={safePage >= totalPages}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg border border-outline-variant bg-white px-3 py-2 text-sm font-medium text-on-surface hover:bg-surface-container-low disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Next
           </button>

@@ -61,6 +61,17 @@ body {
   font-family: var(--font-epilogue), "Epilogue", system-ui, sans-serif;
 }
 
+.font-body {
+  font-family: var(--font-public-sans), "Public Sans", system-ui, sans-serif;
+}
+
+.font-label {
+  font-family: var(--font-public-sans), "Public Sans", system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-epilogue), "Epilogue", system-ui, sans-serif;
 }

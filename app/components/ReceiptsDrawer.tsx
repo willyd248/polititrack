@@ -298,7 +298,7 @@ function ReceiptsDrawerContent() {
                       key={index}
                       className="border-b border-[#C5C6CF] pb-6 last:border-b-0"
                     >
-                      <h3 className="text-base font-semibold text-[#041534]">
+                      <h3 className="font-headline text-base font-semibold text-[#041534]">
                         {source.title}
                       </h3>
                       <div className="mt-2 flex items-center gap-2 text-xs text-[#75777F]">
