@@ -1,17 +1,17 @@
 /**
  * Mapper from Congress.gov API v3 bill response to Polititrack Bill type
- * 
+ *
+ * Fetches bill detail + all sub-endpoints (summaries, actions, cosponsors,
+ * subjects, related bills, text versions) to build a complete Bill object.
+ *
  * Congress.gov API documentation: https://api.congress.gov/
  */
 
 import { TimelineEvent, Source } from "../../data/types";
-import { Bill, BillSponsor } from "../../data/bills";
+import { Bill, BillSponsor, RelatedBill } from "../../data/bills";
 import { inferTopicFromText } from "../topicTagger";
 
 // Congress.gov API response types
-// Note: The detail endpoint returns actions/summaries/cosponsors as {count, url} objects.
-// The list endpoint returns bills with latestAction inline.
-// We handle both structures gracefully.
 interface CongressBill {
   number: string | number;
   type: string; // "HR", "S", etc.
@@ -22,12 +22,9 @@ interface CongressBill {
     actionDate: string;
   };
   updateDate?: string;
-  // Detail endpoint: {count, url} object; not an inline text
   summary?: {
     text: string;
   };
-  // Detail endpoint returns {count, url}; list endpoint omits this
-  // We fetch actions separately if needed, but for now use latestAction
   actions?: Array<{
     text: string;
     actionDate: string;
@@ -38,7 +35,6 @@ interface CongressBill {
     url: string;
     type: string;
   }> | { count: number; url: string };
-  // Detail endpoint uses sponsors[] (array), list endpoint omits
   sponsor?: {
     bioguideId: string;
     firstName?: string;
@@ -81,6 +77,69 @@ interface CongressBillResponse {
   bill: CongressBill;
 }
 
+// Sub-endpoint response types
+interface CongressSummariesResponse {
+  summaries?: Array<{
+    text: string;
+    actionDate?: string;
+    actionDesc?: string;
+    updateDate?: string;
+    versionCode?: string;
+  }>;
+}
+
+interface CongressActionsResponse {
+  actions?: Array<{
+    text: string;
+    actionDate: string;
+    type?: string;
+    actionCode?: string;
+    sourceSystem?: { code: number; name: string };
+  }>;
+}
+
+interface CongressCosponsorsResponse {
+  cosponsors?: Array<{
+    bioguideId: string;
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    party?: string;
+    state?: string;
+    district?: number;
+    sponsorshipDate?: string;
+    isOriginalCosponsor?: boolean;
+  }>;
+  pagination?: { count: number };
+}
+
+interface CongressSubjectsResponse {
+  subjects?: {
+    legislativeSubjects?: Array<{ name: string }>;
+    policyArea?: { name: string };
+  };
+}
+
+interface CongressRelatedBillsResponse {
+  relatedBills?: Array<{
+    title: string;
+    type: string;
+    number: number;
+    congress: number;
+    latestAction?: { text: string; actionDate: string };
+    relationshipDetails?: Array<{ type: string }>;
+  }>;
+}
+
+interface CongressTextResponse {
+  textVersions?: Array<{
+    type: string;
+    date: string;
+    formats?: Array<{ type: string; url: string }>;
+    url?: string;
+  }>;
+}
+
 /**
  * Map Congress.gov bill ID format to Polititrack ID
  * Format: {congress}-{type}{number} (e.g., "118-hr123", "118-s1")
@@ -97,7 +156,7 @@ export function formatBillId(congress: number, type: string, number: string): st
 export function parseBillId(id: string): { congress: number; type: string; number: string } | null {
   const match = id.match(/^(\d+)-([a-z]+)(\d+)$/i);
   if (!match) return null;
-  
+
   return {
     congress: parseInt(match[1], 10),
     type: match[2].toUpperCase(),
@@ -110,7 +169,7 @@ export function parseBillId(id: string): { congress: number; type: string; numbe
  */
 function mapStatus(bill: CongressBill): Bill["status"] {
   const latestAction = bill.latestAction?.text?.toLowerCase() || "";
-  
+
   if (latestAction.includes("became public law") || latestAction.includes("signed")) {
     return "Passed";
   }
@@ -120,115 +179,128 @@ function mapStatus(bill: CongressBill): Bill["status"] {
   if (latestAction.includes("committee") || latestAction.includes("referred")) {
     return "In Committee";
   }
-  
+
   return "Introduced";
 }
 
 /**
  * Map Congress.gov actions to timeline events
  */
-function mapTimelineEvents(bill: CongressBill, congress: number, type: string, number: string): TimelineEvent[] {
-  const events: TimelineEvent[] = [];
-  
-  const actionsArray = Array.isArray(bill.actions) ? bill.actions : [];
-  if (actionsArray.length > 0) {
-    actionsArray.forEach((action, index) => {
-      const eventId = `timeline-${index}`;
-      const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${type.toLowerCase()}-bill/${number}`;
-      
-      events.push({
-        id: eventId,
-        date: action.actionDate || bill.updateDate || "",
-        title: action.text || "Action",
-        details: action.text,
-        topic: undefined, // Congress.gov doesn't provide topic categorization
-        sources: [
-          {
-            title: "Congress.gov Bill Actions",
-            publisher: "U.S. Congress",
-            date: action.actionDate || "",
-            url: billUrl,
-            excerpt: `Official record of bill action: ${action.text}`,
-          },
-        ],
-      });
-    });
-  } else if (bill.latestAction) {
-    // Fallback to latest action if no actions array
-    const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${type.toLowerCase()}-bill/${number}`;
-    events.push({
-      id: "timeline-0",
-      date: bill.latestAction.actionDate || bill.updateDate || "",
-      title: bill.latestAction.text || "Latest Action",
-      details: bill.latestAction.text,
+function mapTimelineEvents(
+  actions: Array<{ text: string; actionDate: string; type?: string }>,
+  bill: CongressBill,
+  congress: number,
+  type: string,
+  number: string
+): TimelineEvent[] {
+  const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${type.toLowerCase()}-bill/${number}`;
+
+  if (actions.length > 0) {
+    // Sort by date ascending (oldest first)
+    const sorted = [...actions].sort(
+      (a, b) => new Date(a.actionDate).getTime() - new Date(b.actionDate).getTime()
+    );
+
+    return sorted.map((action, index) => ({
+      id: `timeline-${index}`,
+      date: action.actionDate || bill.updateDate || "",
+      title: action.text || "Action",
+      details: action.text,
+      topic: undefined,
       sources: [
         {
-          title: "Congress.gov Latest Action",
+          title: "Congress.gov Bill Actions",
           publisher: "U.S. Congress",
-          date: bill.latestAction.actionDate || "",
-          url: billUrl,
-          excerpt: `Latest action: ${bill.latestAction.text}`,
+          date: action.actionDate || "",
+          url: `${billUrl}/all-actions`,
+          excerpt: `Official record of bill action: ${action.text}`,
         },
       ],
-    });
+    }));
   }
-  
-  return events;
+
+  // Fallback to latest action
+  if (bill.latestAction) {
+    return [
+      {
+        id: "timeline-0",
+        date: bill.latestAction.actionDate || bill.updateDate || "",
+        title: bill.latestAction.text || "Latest Action",
+        details: bill.latestAction.text,
+        sources: [
+          {
+            title: "Congress.gov Latest Action",
+            publisher: "U.S. Congress",
+            date: bill.latestAction.actionDate || "",
+            url: billUrl,
+            excerpt: `Latest action: ${bill.latestAction.text}`,
+          },
+        ],
+      },
+    ];
+  }
+
+  return [];
 }
 
 /**
  * Create summary sources from bill data
  */
 function createSummarySources(
-  bill: CongressBill,
   congress: number,
   type: string,
   number: string,
-  summaryText?: string
+  updateDate: string,
+  hasSummary: boolean,
+  textUrl?: string
 ): Source[] {
   const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${type.toLowerCase()}-bill/${number}`;
   const sources: Source[] = [
     {
       title: "Congress.gov Bill Page",
       publisher: "U.S. Congress",
-      date: bill.updateDate || "",
+      date: updateDate,
       url: billUrl,
       excerpt: `Official bill page for ${type} ${number} (${congress}th Congress)`,
     },
   ];
-  
-  // Add summary source if official summary exists
-  if (summaryText) {
+
+  if (hasSummary) {
     sources.unshift({
       title: "Official Bill Summary",
       publisher: "Congress.gov",
-      date: bill.updateDate || "",
-      url: billUrl,
+      date: updateDate,
+      url: `${billUrl}?s=1&r=1`,
       excerpt: `Official summary text for ${type} ${number} from Congress.gov.`,
     });
   }
-  
-  // Add text version if available (detail endpoint returns {count, url}, skip in that case)
-  if (Array.isArray(bill.textVersions) && bill.textVersions.length > 0) {
-    const textVersion = bill.textVersions[0];
+
+  if (textUrl) {
     sources.push({
-      title: `Bill Text (${textVersion.type})`,
+      title: "Full Bill Text",
       publisher: "U.S. Congress",
-      date: bill.updateDate || "",
-      url: textVersion.url,
+      date: updateDate,
+      url: textUrl,
       excerpt: `Full text of ${type} ${number}`,
     });
   }
-  
+
   return sources;
 }
 
 /**
  * Map Congress.gov sponsor to BillSponsor
  */
-function mapSponsor(sponsor?: { bioguideId: string; firstName?: string; lastName?: string; fullName?: string; party?: string; state?: string }): BillSponsor | undefined {
+function mapSponsor(sponsor?: {
+  bioguideId: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  party?: string;
+  state?: string;
+}): BillSponsor | undefined {
   if (!sponsor || !sponsor.bioguideId) return undefined;
-  
+
   return {
     bioguideId: sponsor.bioguideId,
     name: sponsor.fullName || `${sponsor.firstName || ""} ${sponsor.lastName || ""}`.trim(),
@@ -238,128 +310,137 @@ function mapSponsor(sponsor?: { bioguideId: string; firstName?: string; lastName
 }
 
 /**
- * Map Congress.gov cosponsors to BillSponsor array (limit 10)
+ * Map Congress.gov cosponsors to BillSponsor array (limit 20)
  */
-function mapCosponsors(cosponsors?: Array<{ bioguideId: string; firstName?: string; lastName?: string; fullName?: string; party?: string; state?: string; cosponsorDate?: string }>): BillSponsor[] {
+function mapCosponsors(
+  cosponsors?: Array<{
+    bioguideId: string;
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    party?: string;
+    state?: string;
+  }>
+): BillSponsor[] {
   if (!cosponsors || cosponsors.length === 0) return [];
-  
+
   return cosponsors
-    .slice(0, 10) // Limit to 10
+    .slice(0, 20)
     .map((cosponsor) => ({
       bioguideId: cosponsor.bioguideId,
       name: cosponsor.fullName || `${cosponsor.firstName || ""} ${cosponsor.lastName || ""}`.trim(),
       party: cosponsor.party,
       state: cosponsor.state,
     }))
-    .filter((cosponsor) => cosponsor.bioguideId); // Filter out any invalid entries
+    .filter((cosponsor) => cosponsor.bioguideId);
 }
 
 /**
  * Create sponsor/cosponsor sources
  */
 function createSponsorSources(
-  bill: CongressBill,
   congress: number,
   type: string,
-  number: string
+  number: string,
+  updateDate: string
 ): Source[] {
   const billUrl = `https://www.congress.gov/bill/${congress}th-congress/${type.toLowerCase()}-bill/${number}`;
-  const sources: Source[] = [
+  return [
     {
       title: "Congress.gov Bill Page - Cosponsors",
       publisher: "Congress.gov",
-      date: bill.updateDate || "",
-      url: billUrl,
-      excerpt: `Official bill page with sponsor and cosponsor information for ${type} ${number}.`,
+      date: updateDate,
+      url: `${billUrl}/cosponsors`,
+      excerpt: `Official cosponsor information for ${type} ${number}.`,
     },
   ];
-  
-  // Add Congress.gov API endpoint for cosponsors if available
-  sources.push({
-    title: "Congress.gov API - Bill Cosponsors",
-    publisher: "Congress.gov",
-    date: bill.updateDate || "",
-    url: `https://api.congress.gov/v3/bill/${congress}/${type}/${number}/cosponsors`,
-    excerpt: `API endpoint for cosponsor data for ${type} ${number}.`,
-  });
-  
-  return sources;
 }
 
 /**
- * Map Congress.gov bill to Polititrack Bill type
+ * Safely fetch a sub-endpoint, returning null on failure
+ */
+async function safeFetch<T>(
+  congressFetch: <R>(path: string, options?: { revalidate?: number }) => Promise<R>,
+  path: string,
+  revalidate: number = 1800
+): Promise<T | null> {
+  try {
+    return await congressFetch<T>(path, { revalidate });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Strip HTML tags from summary text
+ */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, "").trim();
+}
+
+/**
+ * Build Congress.gov human-readable URL for a bill
+ */
+function billPageUrl(congress: number, type: string, number: string): string {
+  return `https://www.congress.gov/bill/${congress}th-congress/${type.toLowerCase()}-bill/${number}`;
+}
+
+/**
+ * Map Congress.gov bill to Polititrack Bill type (used for list endpoint — no sub-fetches)
  */
 export function mapCongressBillToBill(congressBill: CongressBill): Bill {
   const congress = congressBill.congress;
   const type = congressBill.type;
   const number = String(congressBill.number);
   const id = formatBillId(congress, type, number);
-  
-  // Extract official summary text from Congress.gov
-  const summaryText = congressBill.summary?.text || undefined;
-  
-  // Convert summary text to bullet points if available
-  // Otherwise use placeholder
+  const updateDate = congressBill.updateDate || "";
+
+  const summaryText = congressBill.summary?.text ? stripHtml(congressBill.summary.text) : undefined;
+
   const summary = summaryText
     ? summaryText
         .split(/[.\n]/)
         .filter((s) => s.trim().length > 20)
-        .slice(0, 6) // Allow more bullets for real summaries
+        .slice(0, 6)
         .map((s) => s.trim() + (s.trim().endsWith(".") ? "" : "."))
     : [
         `This bill was introduced in the ${congress}th Congress.`,
         "Detailed summary information is being processed.",
       ];
-  
-  // Map status
+
   const status = mapStatus(congressBill);
-  
-  // Create timeline from actions
-  const timeline = mapTimelineEvents(congressBill, congress, type, number);
-  
-  // Create summary sources - include Congress.gov summary endpoint if summary exists
-  const summarySources = createSummarySources(congressBill, congress, type, number, summaryText);
-  
-  // Map sponsor — detail endpoint uses sponsors[] array, list uses sponsor
+  const actionsArray = Array.isArray(congressBill.actions) ? congressBill.actions : [];
+  const timeline = mapTimelineEvents(actionsArray, congressBill, congress, type, number);
+  const summarySources = createSummarySources(congress, type, number, updateDate, !!summaryText);
+
   const sponsorData = congressBill.sponsor || (congressBill.sponsors && congressBill.sponsors[0]) || undefined;
   const sponsor = mapSponsor(sponsorData);
-  // Cosponsors — detail endpoint returns {count, url}, list may have inline array
-  const cosponsors = Array.isArray(congressBill.cosponsors)
-    ? mapCosponsors(congressBill.cosponsors)
-    : [];
-  
-  // Create sponsor sources if sponsor/cosponsors exist
+  const cosponsors = Array.isArray(congressBill.cosponsors) ? mapCosponsors(congressBill.cosponsors) : [];
   const sponsorSources = (sponsor || cosponsors.length > 0)
-    ? createSponsorSources(congressBill, congress, type, number)
+    ? createSponsorSources(congress, type, number, updateDate)
     : undefined;
-  
-  // Create status and next steps from latest action
+
   const statusAndNextSteps = congressBill.latestAction
-    ? [
-        {
-          step: congressBill.latestAction.text,
-          date: congressBill.latestAction.actionDate,
-        },
-      ]
+    ? [{ step: congressBill.latestAction.text, date: congressBill.latestAction.actionDate }]
     : [];
-  
-  // Infer topic from bill title and summary
+
   const topicText = `${congressBill.title} ${congressBill.summary?.text || ""}`;
-  const topic = inferTopicFromText(topicText) || undefined;
-  
+  const topic = congressBill.policyArea?.name || inferTopicFromText(topicText) || undefined;
+  const subjects = congressBill.policyArea ? [congressBill.policyArea.name] : undefined;
+
   return {
     id,
     name: `${type} ${number}: ${congressBill.title}`,
     status,
     topic,
     summary,
-    summaryText, // Store official summary text if available
+    summaryText,
     sponsor,
     cosponsors: cosponsors.length > 0 ? cosponsors : undefined,
     sponsorSources,
+    subjects,
     whatChangesForMostPeople: [
       "Impact analysis will be available once the bill progresses further.",
-      "Check back for updates on how this bill affects everyday Americans.",
     ],
     whoIsImpacted: ["Analysis pending"],
     argumentsFor: ["Arguments will be updated as the bill progresses."],
@@ -371,45 +452,171 @@ export function mapCongressBillToBill(congressBill: CongressBill): Bill {
 }
 
 /**
- * Fetch and map a single bill from Congress.gov
+ * Fetch and map a single bill from Congress.gov, including all sub-endpoints
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   const parsed = parseBillId(id);
   if (!parsed) {
     if (process.env.NODE_ENV === "development") {
-      console.warn(`[fetchBillById] Invalid bill ID format: ${id}. Expected format: {congress}-{type}{number} (e.g., "118-hr123")`);
+      console.warn(`[fetchBillById] Invalid bill ID format: ${id}`);
     }
     return null;
   }
-  
+
   const { congress, type, number } = parsed;
-  
+  const typeLower = type.toLowerCase();
+  const basePath = `/bill/${congress}/${typeLower}/${number}`;
+
   if (process.env.NODE_ENV === "development") {
-    console.log(`[fetchBillById] Fetching bill: ${id} -> Congress: ${congress}, Type: ${type}, Number: ${number}`);
+    console.log(`[fetchBillById] Fetching bill: ${id} -> ${basePath}`);
   }
-  
+
   try {
     const { congressFetch } = await import("../congress");
-    const response = await congressFetch<CongressBillResponse>(
-      `/bill/${congress}/${type.toLowerCase()}/${number}`,
-      { revalidate: 1800 } // 30 minutes
-    );
-    
-    if (!response.bill) {
+
+    // Fetch bill detail + all sub-endpoints in parallel
+    const [billRes, summariesRes, actionsRes, cosponsorsRes, subjectsRes, relatedRes, textRes] =
+      await Promise.all([
+        congressFetch<CongressBillResponse>(basePath, { revalidate: 1800 }),
+        safeFetch<CongressSummariesResponse>(congressFetch, `${basePath}/summaries`, 1800),
+        safeFetch<CongressActionsResponse>(congressFetch, `${basePath}/actions`, 1800),
+        safeFetch<CongressCosponsorsResponse>(congressFetch, `${basePath}/cosponsors`, 1800),
+        safeFetch<CongressSubjectsResponse>(congressFetch, `${basePath}/subjects`, 1800),
+        safeFetch<CongressRelatedBillsResponse>(congressFetch, `${basePath}/relatedbills`, 1800),
+        safeFetch<CongressTextResponse>(congressFetch, `${basePath}/text`, 1800),
+      ]);
+
+    if (!billRes.bill) {
       if (process.env.NODE_ENV === "development") {
         console.warn(`[fetchBillById] No bill data in response for ${id}`);
       }
       return null;
     }
-    
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchBillById] Successfully fetched bill ${id}: ${response.bill.title}`);
+
+    const congressBill = billRes.bill;
+    const updateDate = congressBill.updateDate || "";
+    const billUrl = billPageUrl(congress, type, number);
+
+    // --- Summary ---
+    const rawSummary = summariesRes?.summaries?.[0]?.text || congressBill.summary?.text;
+    const summaryText = rawSummary ? stripHtml(rawSummary) : undefined;
+
+    const summary = summaryText
+      ? summaryText
+          .split(/[.\n]/)
+          .filter((s) => s.trim().length > 20)
+          .slice(0, 8)
+          .map((s) => s.trim() + (s.trim().endsWith(".") ? "" : "."))
+      : [
+          `This bill was introduced in the ${congress}th Congress.`,
+          "Detailed summary information is being processed.",
+        ];
+
+    // --- Actions / Timeline ---
+    const actionsArray = actionsRes?.actions || (Array.isArray(congressBill.actions) ? congressBill.actions : []);
+    const timeline = mapTimelineEvents(actionsArray, congressBill, congress, type, number);
+
+    // Status & Next Steps — use all actions sorted newest first
+    const statusAndNextSteps = actionsArray.length > 0
+      ? [...actionsArray]
+          .sort((a, b) => new Date(b.actionDate).getTime() - new Date(a.actionDate).getTime())
+          .slice(0, 6)
+          .map((a) => ({ step: a.text, date: a.actionDate }))
+      : congressBill.latestAction
+        ? [{ step: congressBill.latestAction.text, date: congressBill.latestAction.actionDate }]
+        : [];
+
+    // --- Cosponsors ---
+    const cosponsorsArray = cosponsorsRes?.cosponsors || (Array.isArray(congressBill.cosponsors) ? congressBill.cosponsors : []);
+    const cosponsors = mapCosponsors(cosponsorsArray);
+    const cosponsorCount = cosponsorsRes?.pagination?.count ?? cosponsorsArray.length;
+
+    // --- Subjects ---
+    const subjectsList: string[] = [];
+    if (subjectsRes?.subjects?.policyArea?.name) {
+      subjectsList.push(subjectsRes.subjects.policyArea.name);
     }
-    
-    return mapCongressBillToBill(response.bill);
+    if (subjectsRes?.subjects?.legislativeSubjects) {
+      for (const subj of subjectsRes.subjects.legislativeSubjects) {
+        if (subj.name && !subjectsList.includes(subj.name)) {
+          subjectsList.push(subj.name);
+        }
+      }
+    }
+    // Fallback to policyArea from detail endpoint
+    if (subjectsList.length === 0 && congressBill.policyArea?.name) {
+      subjectsList.push(congressBill.policyArea.name);
+    }
+
+    // --- Related Bills ---
+    const relatedBills: RelatedBill[] = (relatedRes?.relatedBills || []).slice(0, 10).map((rb) => ({
+      id: formatBillId(rb.congress, rb.type, String(rb.number)),
+      title: rb.title,
+      type: rb.type,
+      number: String(rb.number),
+      congress: rb.congress,
+      latestAction: rb.latestAction?.text,
+    }));
+
+    // --- Text URL ---
+    let textUrl: string | undefined;
+    if (textRes?.textVersions && textRes.textVersions.length > 0) {
+      const latest = textRes.textVersions[0];
+      // Prefer HTML format
+      const htmlFormat = latest.formats?.find((f) => f.type === "Formatted Text" || f.type === "HTML");
+      const pdfFormat = latest.formats?.find((f) => f.type === "PDF");
+      textUrl = htmlFormat?.url || pdfFormat?.url || latest.url || `${billUrl}/text`;
+    } else {
+      textUrl = `${billUrl}/text`;
+    }
+
+    // --- Sponsor ---
+    const sponsorData = congressBill.sponsor || (congressBill.sponsors && congressBill.sponsors[0]) || undefined;
+    const sponsor = mapSponsor(sponsorData);
+    const sponsorSources = (sponsor || cosponsors.length > 0)
+      ? createSponsorSources(congress, type, number, updateDate)
+      : undefined;
+
+    // --- Sources ---
+    const summarySources = createSummarySources(congress, type, number, updateDate, !!summaryText, textUrl);
+
+    // --- Topic ---
+    const topic = subjectsList[0] || congressBill.policyArea?.name || inferTopicFromText(`${congressBill.title} ${summaryText || ""}`) || undefined;
+
+    // --- Status ---
+    const status = mapStatus(congressBill);
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[fetchBillById] Successfully built bill ${id}: ${congressBill.title} (${actionsArray.length} actions, ${cosponsors.length} cosponsors, ${subjectsList.length} subjects)`);
+    }
+
+    return {
+      id: formatBillId(congress, type, String(congressBill.number)),
+      name: `${type} ${String(congressBill.number)}: ${congressBill.title}`,
+      status,
+      topic,
+      summary,
+      summaryText,
+      sponsor,
+      cosponsors: cosponsors.length > 0 ? cosponsors : undefined,
+      cosponsorCount: cosponsorCount > 0 ? cosponsorCount : undefined,
+      sponsorSources,
+      subjects: subjectsList.length > 0 ? subjectsList : undefined,
+      relatedBills: relatedBills.length > 0 ? relatedBills : undefined,
+      textUrl,
+      whatChangesForMostPeople: [
+        "Impact analysis will be available once the bill progresses further.",
+      ],
+      whoIsImpacted: ["Analysis pending"],
+      argumentsFor: ["Arguments will be updated as the bill progresses."],
+      argumentsAgainst: ["Arguments will be updated as the bill progresses."],
+      statusAndNextSteps,
+      timeline,
+      summarySources,
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[fetchBillById] Failed to fetch bill ${id} (${congress}/${type}/${number}):`, errorMessage);
+    console.error(`[fetchBillById] Failed to fetch bill ${id}:`, errorMessage);
     return null;
   }
 }
@@ -425,20 +632,19 @@ export async function fetchBills(limit: number = 10): Promise<Bill[]> {
       {
         params: {
           limit,
-          sort: "updateDate desc", // Most recently updated first
+          sort: "updateDate desc",
         },
-        revalidate: 1800, // 30 minutes
+        revalidate: 1800,
       }
     );
-    
+
     if (!response.bills || response.bills.length === 0) {
       return [];
     }
-    
+
     return response.bills.map(mapCongressBillToBill);
   } catch (error) {
     console.error("Failed to fetch bills:", error);
     return [];
   }
 }
-
