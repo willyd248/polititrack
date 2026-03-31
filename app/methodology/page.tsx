@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Card from "../components/ui/Card";
 
 export const metadata: Metadata = {
   title: "Methodology",
@@ -10,14 +9,7 @@ export const metadata: Metadata = {
     description:
       "How Polititrack works, what it shows, and what it means. Learn about our neutral language policy, source citations, and data limitations.",
     type: "website",
-    images: [
-      {
-        url: "/og",
-        width: 1200,
-        height: 630,
-        alt: "Methodology",
-      },
-    ],
+    images: [{ url: "/og", width: 1200, height: 630, alt: "Methodology" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -30,188 +22,182 @@ export const metadata: Metadata = {
 
 export default function MethodologyPage() {
   return (
-    <div className="reading-container space-y-12">
-      <div className="space-y-6">
-        <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+    <div className="reading-container space-y-10">
+      {/* Page Header */}
+      <div>
+        <h1 className="font-headline text-4xl font-bold text-[#041534] leading-tight">
           Methodology
         </h1>
-        <p className="text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-          How Polititrack works, what it shows, and what it means.
+        <p className="mt-3 text-base text-[#75777F] leading-relaxed">
+          How PolitiTrack works, what it shows, and what it doesn&apos;t.
         </p>
       </div>
 
-      {/* What Polititrack is */}
-      <Card>
-        <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          What Polititrack Is (and Isn't)
+      {/* What PolitiTrack Is */}
+      <div className="card p-6 space-y-3">
+        <h2 className="font-headline text-xl font-bold text-[#041534]">
+          What PolitiTrack Is (and Isn&apos;t)
         </h2>
-        <div className="space-y-4 text-zinc-700 dark:text-zinc-300">
+        <div className="space-y-3 text-sm text-[#191C1D]/80 leading-relaxed">
           <p>
-            Polititrack is a civic transparency tool designed to help people
-            understand how government works. We present information about
-            politicians' funding sources, voting records, and public statements
-            in a neutral, fact-based format.
+            PolitiTrack is a civic transparency tool that helps people understand how
+            government works. We surface how politicians vote, who funds their campaigns,
+            and what legislation they&apos;re sponsoring — all from official primary sources,
+            presented neutrally.
           </p>
           <p>
-            Polititrack is not a news site, a political advocacy platform, or a
-            scoring system. We don't tell you who to vote for or what to think.
-            We provide the facts and sources so you can make informed decisions.
+            PolitiTrack is not a news site, a political scoring system, or an advocacy
+            platform. We don&apos;t tell you who to vote for. We provide facts and
+            citations so you can decide for yourself.
           </p>
         </div>
-      </Card>
+      </div>
+
+      {/* Data Sources */}
+      <div className="card p-6 space-y-3">
+        <h2 className="font-headline text-xl font-bold text-[#041534]">Data Sources</h2>
+        <div className="space-y-3 text-sm text-[#191C1D]/80 leading-relaxed">
+          <p>All data is pulled live from official government APIs and databases:</p>
+          <ul className="space-y-2 ml-4">
+            {[
+              {
+                name: "Congress.gov API",
+                desc: "Member profiles, sponsored bills, voting records, and bill status for the 119th Congress.",
+              },
+              {
+                name: "OpenFEC (Federal Election Commission)",
+                desc: "Campaign finance data including fundraising totals and top donor categories.",
+              },
+              {
+                name: "Senate.gov XML feeds",
+                desc: "Senate roll-call vote results.",
+              },
+              {
+                name: "United States Project bioguide dataset",
+                desc: "FEC candidate ID cross-reference for matching Congress members to FEC records.",
+              },
+            ].map(({ name, desc }) => (
+              <li key={name} className="flex gap-2">
+                <span className="text-[#041534] font-semibold shrink-0">·</span>
+                <span>
+                  <strong className="text-[#041534]">{name}</strong> — {desc}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-[#75777F] border-t border-[#C5C6CF] pt-3 mt-3">
+            Member and bill data is cached for 30 minutes. FEC financial data is cached for
+            24 hours due to API rate limits (60 requests/hour).
+          </p>
+        </div>
+      </div>
 
       {/* How Receipts Work */}
-      <Card>
-        <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          How Receipts Work
-        </h2>
-        <div className="space-y-4 text-zinc-700 dark:text-zinc-300">
+      <div className="card p-6 space-y-3">
+        <h2 className="font-headline text-xl font-bold text-[#041534]">How Receipts Work</h2>
+        <div className="space-y-3 text-sm text-[#191C1D]/80 leading-relaxed">
           <p>
-            Every claim and statistic on Polititrack is backed by primary
-            sources. When you see a "View receipts" button or citation, you can
-            access the original sources that support that information.
+            Every claim and statistic is backed by a primary source. When you see a
+            citation icon or &ldquo;View receipts&rdquo; button, clicking it shows the original
+            source — title, publisher, date, and a brief note on what it contains.
           </p>
           <p>
-            Receipts include links to official government databases, congressional
-            records, campaign finance disclosures, and other primary sources.
-            Each receipt shows the source title, publisher, date, and a brief
-            excerpt explaining what it contains.
-          </p>
-          <p>
-            You can copy receipts as formatted text to share or verify
-            independently. All sources are publicly available and verifiable.
+            You can copy receipts as formatted text to share or verify independently.
+            All sources are publicly accessible government records.
           </p>
         </div>
-      </Card>
+      </div>
 
       {/* Topic Lens */}
-      <Card>
-        <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          What "Topic Lens" Means
-        </h2>
-        <div className="space-y-4 text-zinc-700 dark:text-zinc-300">
+      <div className="card p-6 space-y-3">
+        <h2 className="font-headline text-xl font-bold text-[#041534]">What &ldquo;Topic Lens&rdquo; Means</h2>
+        <div className="space-y-3 text-sm text-[#191C1D]/80 leading-relaxed">
           <p>
-            Topic Lens is a filtering tool that lets you focus on specific policy
-            areas across the site. When you select a topic (like Healthcare,
-            Environment, or Infrastructure), relevant content is highlighted or
-            filtered to show only that topic.
-          </p>
-          <p>
-            Topic Lens helps you understand how politicians engage with specific
-            policy areas without changing the underlying data. It's a way to
-            organize information, not a judgment about importance or quality.
+            Topic Lens is a filter that lets you focus on a policy area (Healthcare,
+            Environment, Infrastructure, etc.) across the whole site. It highlights relevant
+            votes, bills, and statements without hiding anything — it&apos;s a way to organize
+            the information, not a judgment on what matters.
           </p>
         </div>
-      </Card>
+      </div>
 
       {/* Compare Feature */}
-      <Card>
-        <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          What Compare Does (and Does Not Imply)
-        </h2>
-        <div className="space-y-4 text-zinc-700 dark:text-zinc-300">
+      <div className="card p-6 space-y-3">
+        <h2 className="font-headline text-xl font-bold text-[#041534]">What Compare Does</h2>
+        <div className="space-y-3 text-sm text-[#191C1D]/80 leading-relaxed">
           <p>
-            The Compare feature lets you view two politicians side-by-side to
-            see their key metrics, funding sources, and policy positions. This
-            is a factual comparison tool, not a ranking or scoring system.
-          </p>
-          <p>
-            Compare shows you the same information that appears on individual
-            politician pages, just presented together for easier viewing. It does
-            not imply that one politician is "better" or "worse" than another.
-            Different metrics matter to different people, and we present the
-            facts without judgment.
-          </p>
-          <p>
-            Use Compare to understand differences in voting patterns, funding
-            sources, and policy positions. The interpretation and importance of
-            these differences is up to you.
+            Compare places two politicians side-by-side so you can see their funding
+            sources, vote counts, and bill activity at a glance. It is a factual display
+            tool, not a ranking or endorsement. The same data that appears on individual
+            profiles is shown together — nothing more, nothing less.
           </p>
         </div>
-      </Card>
+      </div>
 
-      {/* Neutral Language Policy */}
-      <Card>
-        <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          Neutral Language Policy
-        </h2>
-        <div className="space-y-4 text-zinc-700 dark:text-zinc-300">
+      {/* Neutral Language */}
+      <div className="card p-6 space-y-3">
+        <h2 className="font-headline text-xl font-bold text-[#041534]">Neutral Language Policy</h2>
+        <div className="space-y-3 text-sm text-[#191C1D]/80 leading-relaxed">
           <p>
-            Polititrack uses neutral, factual language throughout. We avoid
-            inflammatory terms like "corrupt" or "liar" that make value
-            judgments. Instead, we use descriptive terms like:
+            PolitiTrack avoids loaded language. Instead of words like &ldquo;corrupt&rdquo; or
+            &ldquo;liar&rdquo;, we use descriptive terms:
           </p>
-          <ul className="list-disc list-inside space-y-2 ml-4">
-            <li>
-              <strong>Alignment:</strong> When a politician's votes or statements
-              align with their stated positions or party platform
-            </li>
-            <li>
-              <strong>Mismatch:</strong> When there's a discrepancy between
-              stated positions and actions
-            </li>
-            <li>
-              <strong>Unclear:</strong> When information is incomplete or
-              ambiguous
-            </li>
+          <ul className="space-y-2 ml-4">
+            {[
+              { term: "Alignment", def: "A politician's votes or statements match their stated positions." },
+              { term: "Mismatch", def: "A discrepancy exists between stated positions and recorded actions." },
+              { term: "Unclear", def: "Information is incomplete, ambiguous, or unavailable." },
+            ].map(({ term, def }) => (
+              <li key={term} className="flex gap-2">
+                <span className="text-[#041534] font-semibold shrink-0">·</span>
+                <span>
+                  <strong className="text-[#041534]">{term}:</strong> {def}
+                </span>
+              </li>
+            ))}
           </ul>
-          <p>
-            This language policy ensures that Polititrack remains a tool for
-            transparency and understanding, not political advocacy or
-            character attacks.
-          </p>
         </div>
-      </Card>
+      </div>
 
-      {/* Data Limitations */}
-      <Card>
-        <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          Data Limitations
-        </h2>
-        <div className="space-y-4 text-zinc-700 dark:text-zinc-300">
-          <p>
-            Currently, Polititrack uses mock data for demonstration purposes.
-            This allows us to build and test the interface and user experience
-            before integrating real data sources.
-          </p>
-          <p>
-            In future versions, Polititrack will pull data from official sources
-            including:
-          </p>
-          <ul className="list-disc list-inside space-y-2 ml-4">
-            <li>Federal Election Commission (FEC) campaign finance data</li>
-            <li>Congressional voting records from GovTrack and Vote Smart</li>
-            <li>Official congressional records and statements</li>
-            <li>Publicly available bill text and status information</li>
+      {/* Known Limitations */}
+      <div className="card p-6 space-y-3">
+        <h2 className="font-headline text-xl font-bold text-[#041534]">Known Limitations</h2>
+        <div className="space-y-3 text-sm text-[#191C1D]/80 leading-relaxed">
+          <ul className="space-y-2 ml-4">
+            {[
+              "House roll-call votes are not yet available — the Congress.gov v3 API does not expose a House votes endpoint. Senate votes work via Senate.gov XML.",
+              "FEC financial data is rate-limited (60 req/hr). Profiles without a cached FEC ID show $0 until data loads client-side.",
+              "ZIP code district lookup uses a starter dataset with limited coverage. Expansion is planned.",
+              "Member press/statements are pulled from RSS feeds when available; most profiles show sponsored bills as a proxy.",
+            ].map((item) => (
+              <li key={item} className="flex gap-2">
+                <span className="text-[#041534] font-semibold shrink-0">·</span>
+                <span>{item}</span>
+              </li>
+            ))}
           </ul>
-          <p>
-            All data will be clearly sourced with receipts, and we'll indicate
-            when information is incomplete or unavailable.
-          </p>
         </div>
-      </Card>
+      </div>
 
-      {/* Contact / Feedback */}
-      <Card>
-        <h2 className="mb-4 text-2xl font-semibold text-zinc-900 dark:text-zinc-100">
-          Contact & Feedback
-        </h2>
-        <div className="space-y-4 text-zinc-700 dark:text-zinc-300">
+      {/* Contact */}
+      <div className="card p-6 space-y-3">
+        <h2 className="font-headline text-xl font-bold text-[#041534]">Contact & Feedback</h2>
+        <div className="space-y-3 text-sm text-[#191C1D]/80 leading-relaxed">
           <p>
-            We're building Polititrack to be a useful tool for civic engagement
-            and transparency. Your feedback helps us improve.
-          </p>
-          <p>
-            If you notice errors, have suggestions, or want to report issues with
-            data sources, please reach out. We're committed to accuracy and
-            continuous improvement.
-          </p>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            Contact information will be available in a future version.
+            Found an error or have a suggestion? Reach out on X{" "}
+            <a
+              href="https://x.com/dimaiowill"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#041534] font-semibold underline hover:text-[#1B2A4A]"
+            >
+              @dimaiowill
+            </a>
+            . All data accuracy issues are taken seriously — PolitiTrack is only
+            useful if it&apos;s correct.
           </p>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
-
