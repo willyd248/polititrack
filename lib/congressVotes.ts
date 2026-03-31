@@ -105,7 +105,7 @@ export async function fetchMemberVotes(
   try {
     // For Senate members, use Senate.gov XML sources
     if (chamber === "Senate" && member?.lisId) {
-      return await fetchSenateMemberVotes(member.lisId, congress, 1, limit);
+      return await fetchSenateMemberVotes(member.lisId, congress, 1, limit, member.party);
     }
     
     // For House members, try Congress.gov API (returns empty if not available)

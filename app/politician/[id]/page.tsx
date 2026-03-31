@@ -87,7 +87,7 @@ export default async function PoliticianPage({
   const [sponsoredResult, cosponsoredResult, votesResult] = await Promise.allSettled([
     withTimeout(fetchSponsoredBills(member.bioguideId, 119, 5), 8000),
     withTimeout(fetchCosponsoredBills(member.bioguideId, 119, 5), 8000),
-    withTimeout(fetchMemberVotes(member.bioguideId, 119, 10, member.chamber, member), 8000),
+    withTimeout(fetchMemberVotes(member.bioguideId, 119, 20, member.chamber, member), 8000),
   ]);
 
   const sponsoredBills: LegislativeActivityItem[] | null =

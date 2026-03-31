@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Bill } from "../../data/bills";
 import Card from "./ui/Card";
+import { BipartisanGauge } from "./BipartisanGauge";
 
 interface BillsListProps {
   bills: Bill[];
@@ -28,17 +29,20 @@ export default function BillsList({ bills }: BillsListProps) {
               <h3 className="font-headline text-xl font-semibold text-[#041534]">
                 {bill.name}
               </h3>
-              <span
-                className={`flex-shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
-                  bill.status === "Passed"
-                    ? "bg-green-100 text-green-800"
-                    : bill.status === "Failed"
-                    ? "bg-red-100 text-red-800"
-                    : "bg-[#EDEEEF] text-[#75777F]"
-                }`}
-              >
-                {bill.status}
-              </span>
+              <div className="flex flex-shrink-0 items-center gap-2">
+                <BipartisanGauge cosponsors={bill.cosponsors} size="compact" />
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    bill.status === "Passed"
+                      ? "bg-green-100 text-green-800"
+                      : bill.status === "Failed"
+                      ? "bg-red-100 text-red-800"
+                      : "bg-[#EDEEEF] text-[#75777F]"
+                  }`}
+                >
+                  {bill.status}
+                </span>
+              </div>
             </div>
             <p className="text-sm leading-relaxed text-[#75777F]">
               {bill.summary[0]}

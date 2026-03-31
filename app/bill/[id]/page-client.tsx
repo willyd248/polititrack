@@ -13,6 +13,7 @@ import { MemberPhoto } from "../../components/MemberPhoto";
 import { useReceipts } from "../../store/receipts-store";
 import { useTopicLens } from "../../store/topic-lens-store";
 import { useSaved } from "../../store/saved-store";
+import { BipartisanGauge } from "../../components/BipartisanGauge";
 
 interface BillInsights {
   whatChanges: string[];
@@ -210,6 +211,12 @@ function BillPageContent({ bill, useMockData = false }: BillPageContentProps) {
           </div>
         )}
       </div>
+
+      {/* Bipartisan Gauge */}
+      <BipartisanGauge
+        cosponsors={bill.cosponsors}
+        cosponsorCount={bill.cosponsorCount}
+      />
 
       {/* Top Section */}
       <div className="space-y-6">

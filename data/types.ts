@@ -20,6 +20,8 @@ export interface Vote {
   date: string;
   description: string;
   position: "Yes" | "No" | "Abstain";
+  /** How the majority of the member's party voted (if available) */
+  partyMajorityPosition?: "Yes" | "No" | "Abstain";
   sources: Source[];
 }
 
