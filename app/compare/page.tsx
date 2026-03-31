@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useCompare } from "../store/compare-store";
 import Link from "next/link";
 
@@ -18,8 +19,61 @@ function initials(name: string): string {
     .join("");
 }
 
+function formatMoney(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n.toLocaleString()}`;
+}
+
+interface RealStats {
+  billsSponsored: number;
+  votesThisYear: number;
+  topDonorCategory: string | null;
+  raised: number | null;
+  spent: number | null;
+}
+
 export default function ComparePage() {
   const { selected, clearCompare } = useCompare();
+  const [stats, setStats] = useState<Record<string, RealStats>>({});
+  const [loading, setLoading] = useState(false);
+
+  // Fetch real stats for each selected politician
+  useEffect(() => {
+    if (selected.length < 2) return;
+
+    const idsToFetch = selected
+      .filter((p) => /^[A-Z]\d{6}$/i.test(p.id))
+      .filter((p) => !stats[p.id]);
+
+    if (idsToFetch.length === 0) return;
+
+    setLoading(true);
+    Promise.all(
+      idsToFetch.map((p) =>
+        fetch(`/api/politician/stats?bioguideId=${encodeURIComponent(p.id)}`)
+          .then((r) => r.json())
+          .then((data) => ({ id: p.id, data }))
+          .catch(() => ({ id: p.id, data: null }))
+      )
+    ).then((results) => {
+      const newStats: Record<string, RealStats> = { ...stats };
+      for (const { id, data } of results) {
+        if (data && !data.error) {
+          newStats[id] = {
+            billsSponsored: data.billsSponsored ?? 0,
+            votesThisYear: data.votesThisYear ?? 0,
+            topDonorCategory: data.topDonorCategory ?? null,
+            raised: data.raised ?? null,
+            spent: data.spent ?? null,
+          };
+        }
+      }
+      setStats(newStats);
+      setLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected.length]);
 
   // ── Empty / partial state ──────────────────────────────────────────────────
   if (selected.length < 2) {
@@ -73,6 +127,21 @@ export default function ComparePage() {
 
   const [p1, p2] = selected;
 
+  const getStats = (id: string): RealStats | null => stats[id] ?? null;
+  const s1 = getStats(p1.id);
+  const s2 = getStats(p2.id);
+
+  const billsLeft = s1 ? String(s1.billsSponsored) : String(p1.metrics.billsSponsored);
+  const billsRight = s2 ? String(s2.billsSponsored) : String(p2.metrics.billsSponsored);
+  const votesLeft = s1 ? String(s1.votesThisYear) : String(p1.metrics.votesThisYear);
+  const votesRight = s2 ? String(s2.votesThisYear) : String(p2.metrics.votesThisYear);
+  const donorLeft = s1?.topDonorCategory || p1.metrics.topDonorCategory;
+  const donorRight = s2?.topDonorCategory || p2.metrics.topDonorCategory;
+  const raisedLeft = s1?.raised != null ? formatMoney(s1.raised) : null;
+  const raisedRight = s2?.raised != null ? formatMoney(s2.raised) : null;
+  const spentLeft = s1?.spent != null ? formatMoney(s1.spent) : null;
+  const spentRight = s2?.spent != null ? formatMoney(s2.spent) : null;
+
   // ── Comparison view ────────────────────────────────────────────────────────
   return (
     <div>
@@ -98,9 +167,21 @@ export default function ComparePage() {
 
       <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 space-y-8">
 
+        {loading && (
+          <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3 text-gray-400">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-gray-400" />
+              <span className="text-sm">Loading real-time data from Congress.gov and FEC…</span>
+            </div>
+          </div>
+        )}
+
         {/* ── Identity Cards ────────────────────────────────────────────────── */}
         <div className="grid gap-4 sm:grid-cols-2">
-          {[p1, p2].map((p) => (
+          {[
+            { p: p1, s: s1 },
+            { p: p2, s: s2 },
+          ].map(({ p, s }) => (
             <div key={p.id} className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 <div
@@ -121,9 +202,9 @@ export default function ComparePage() {
               {/* Metrics */}
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {[
-                  { label: "Bills",     value: p.metrics.billsSponsored, small: false },
-                  { label: "Votes",     value: p.metrics.votesThisYear,  small: false },
-                  { label: "Top Donor", value: p.metrics.topDonorCategory, small: true },
+                  { label: "Bills", value: s ? String(s.billsSponsored) : String(p.metrics.billsSponsored), small: false },
+                  { label: "Votes", value: s ? String(s.votesThisYear) : String(p.metrics.votesThisYear), small: false },
+                  { label: "Top Donor", value: s?.topDonorCategory || p.metrics.topDonorCategory, small: true },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-lg bg-gray-50 p-3">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-0.5">
@@ -157,14 +238,29 @@ export default function ComparePage() {
           rows={[
             {
               aspect: "Top Donor Sector",
-              left:   p1.metrics.topDonorCategory,
-              right:  p2.metrics.topDonorCategory,
+              left: donorLeft,
+              right: donorRight,
             },
-            {
-              aspect: "Finance Overview",
-              left:   p1.money.moduleSummary,
-              right:  p2.money.moduleSummary,
-            },
+            ...(raisedLeft || raisedRight
+              ? [
+                  {
+                    aspect: "Total Raised",
+                    left: raisedLeft || "N/A",
+                    right: raisedRight || "N/A",
+                  },
+                  {
+                    aspect: "Total Spent",
+                    left: spentLeft || "N/A",
+                    right: spentRight || "N/A",
+                  },
+                ]
+              : [
+                  {
+                    aspect: "Finance Overview",
+                    left: p1.money.moduleSummary,
+                    right: p2.money.moduleSummary,
+                  },
+                ]),
           ]}
         />
 
@@ -175,13 +271,8 @@ export default function ComparePage() {
           rows={[
             {
               aspect: "Votes This Session",
-              left:   String(p1.metrics.votesThisYear),
-              right:  String(p2.metrics.votesThisYear),
-            },
-            {
-              aspect: "Voting Summary",
-              left:   p1.votes.moduleSummary,
-              right:  p2.votes.moduleSummary,
+              left: votesLeft,
+              right: votesRight,
             },
           ]}
         />
@@ -193,21 +284,8 @@ export default function ComparePage() {
           rows={[
             {
               aspect: "Bills Sponsored",
-              left:   String(p1.metrics.billsSponsored),
-              right:  String(p2.metrics.billsSponsored),
-            },
-          ]}
-        />
-
-        {/* ── Statements ────────────────────────────────────────────────────── */}
-        <CompareSection
-          title="Public Statements"
-          label="Stated Positions"
-          rows={[
-            {
-              aspect: "Overview",
-              left:   p1.statements.moduleSummary,
-              right:  p2.statements.moduleSummary,
+              left: billsLeft,
+              right: billsRight,
             },
           ]}
         />

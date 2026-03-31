@@ -156,7 +156,7 @@ export default function PoliticianPageClient({
 
   const billsSponsored = sponsoredBills?.length ?? politician.metrics.billsSponsored;
   const votesCount     = memberVotes?.length ?? politician.metrics.votesThisYear;
-  const topDonor       = moneyData?.industryBreakdown?.[0]?.industry ?? politician.metrics.topDonorCategory;
+  const topDonor       = moneyData?.industryBreakdown?.[0]?.industry ?? (moneyLoading ? "Loading…" : fecCandidateId ? "–" : "N/A");
 
   const isSaved    = member?.bioguideId ? isPoliticianSaved(member.bioguideId) : false;
   const isCompared = isSelected(politician.id);
@@ -459,7 +459,9 @@ export default function PoliticianPageClient({
                     ? "AI insights are available for real Congress members."
                     : moneyLoading
                     ? "Loading campaign finance data to generate insights…"
-                    : "Generating insights…"}
+                    : !moneyData && !sponsoredBills?.length && memberVotes.length === 0
+                    ? "Insufficient data available to generate insights for this member."
+                    : "AI insights unavailable — try refreshing the page."}
                 </p>
               </div>
             )}
@@ -553,24 +555,27 @@ export default function PoliticianPageClient({
                     </p>
                     {moneyData.industryBreakdown.length > 0 ? (
                       <div className="space-y-3">
-                        {moneyData.industryBreakdown.slice(0, 6).map((ind, i) => (
-                          <div key={i}>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm text-gray-700">{ind.industry}</span>
-                              <span className="text-sm font-bold text-gray-900">{ind.percentage}%</span>
+                        {moneyData.industryBreakdown.slice(0, 6).map((ind, i) => {
+                          const pct = Math.min(ind.percentage, 100);
+                          return (
+                            <div key={i}>
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-gray-700">{ind.industry}</span>
+                                <span className="text-sm font-bold text-gray-900">{pct}%</span>
+                              </div>
+                              <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                                <div
+                                  className="h-full rounded-full transition-all duration-700"
+                                  style={{
+                                    width:      `${pct}%`,
+                                    background: i === 0 ? "#A63744" : "#041534",
+                                    opacity:    Math.max(0.3, 1 - i * 0.14),
+                                  }}
+                                />
+                              </div>
                             </div>
-                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-                              <div
-                                className="h-full rounded-full transition-all duration-700"
-                                style={{
-                                  width:      `${ind.percentage}%`,
-                                  background: i === 0 ? "#A63744" : "#041534",
-                                  opacity:    Math.max(0.3, 1 - i * 0.14),
-                                }}
-                              />
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-sm text-gray-400">

@@ -56,7 +56,7 @@ export default async function PoliticianPage({
   let member;
   try {
     member = await withTimeout(
-      fetchMemberByBioguideId(id, undefined, { skipLisLookup: true }),
+      fetchMemberByBioguideId(id, undefined, { skipFecLookup: false, skipLisLookup: false }),
       10000
     );
   } catch {

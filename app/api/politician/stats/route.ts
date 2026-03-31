@@ -26,13 +26,13 @@ export async function GET(request: NextRequest) {
 
   // Fetch everything in parallel with individual try/catch so one failure doesn't block others
   const [memberResult, moneyResult, billsResult, votesResult] = await Promise.allSettled([
-    fetchMemberByBioguideId(bioguideId, undefined, { skipLisLookup: true }),
+    fetchMemberByBioguideId(bioguideId, undefined, { skipLisLookup: false }),
     fecCandidateId ? fetchMoneyForCandidate(fecCandidateId) : Promise.resolve(null),
     fetchSponsoredBills(bioguideId, 119, 100),
     (async () => {
       // Need member chamber for vote lookup — fetch member first
       try {
-        const m = await fetchMemberByBioguideId(bioguideId, undefined, { skipLisLookup: true });
+        const m = await fetchMemberByBioguideId(bioguideId, undefined, { skipLisLookup: false });
         if (!m) return [];
         return await fetchMemberVotes(bioguideId, 119, 50, m.chamber, m);
       } catch {

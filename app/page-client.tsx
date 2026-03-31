@@ -202,10 +202,12 @@ export default function HomeClient({
             <SectionHeader label="Your Feed" title="Following" />
             <div className="flex flex-wrap gap-2">
               {savedPoliticians.map((id) => {
-                const pol =
+                // Search all members (not just displayed 12), then mock politicians
+                const memberMatch = displayMembers.find((m) => m.bioguideId === id);
+                const polMatch =
                   displayPoliticians.find((p) => p.id === id) ||
                   mockPoliticians.find((p) => p.id === id);
-                if (!pol) return null;
+                const name = memberMatch?.fullName || polMatch?.name || id;
                 return (
                   <Link
                     key={id}
@@ -213,7 +215,7 @@ export default function HomeClient({
                     className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
                   >
                     <span className="h-2 w-2 rounded-full bg-[#041534]" />
-                    {pol.name}
+                    {name}
                   </Link>
                 );
               })}

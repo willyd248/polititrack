@@ -326,7 +326,28 @@ async function fetchIndustryBreakdown(
       }
     }
 
-    const sorted = Array.from(industryMap.entries())
+    // Clean up employer names: filter junk, normalize labels
+    const JUNK_EMPLOYERS = new Set(["NULL", "NONE", "N/A", "INFORMATION REQUESTED", "INFORMATION REQUESTED PER BEST EFFORTS"]);
+    const LABEL_MAP: Record<string, string> = {
+      "NOT EMPLOYED": "Not Employed",
+      "SELF EMPLOYED": "Self-Employed",
+      "SELF": "Self-Employed",
+      "RETIRED": "Retired",
+      "HOMEMAKER": "Homemaker",
+      "STUDENT": "Student",
+    };
+
+    const cleaned = new Map<string, number>();
+    for (const [employer, total] of industryMap.entries()) {
+      const upper = employer.toUpperCase().trim();
+      if (JUNK_EMPLOYERS.has(upper) || upper === "" || upper === "-") continue;
+
+      const label = LABEL_MAP[upper] || employer;
+      const existing = cleaned.get(label) || 0;
+      cleaned.set(label, existing + total);
+    }
+
+    const sorted = Array.from(cleaned.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
 
@@ -334,9 +355,13 @@ async function fetchIndustryBreakdown(
       console.log(`[fetchIndustryBreakdown] ${fecCandidateId}: found ${sorted.length} employers`);
     }
 
+    // Normalize percentages so they sum to 100% (use sum of employer totals as denominator)
+    const employerSum = sorted.reduce((sum, [, total]) => sum + total, 0);
+    const denominator = employerSum > 0 ? employerSum : 1;
+
     return sorted.map(([employer, total]) => ({
       industry: employer,
-      percentage: Math.round((total / totalRaised) * 100),
+      percentage: Math.round((total / denominator) * 100),
     }));
   } catch (error) {
     if (process.env.NODE_ENV === "development") {
