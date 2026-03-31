@@ -205,10 +205,6 @@ async function fetchTopContributors(
     // Get committee IDs first
     const committeeIds = await getCandidateCommittees(fecCandidateId, cycle);
 
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchTopContributors] ${fecCandidateId}: committees = ${committeeIds.join(", ")}`);
-    }
-
     if (committeeIds.length === 0) {
       // Fallback: try querying by candidate_id directly
       const params: Record<string, string | number | boolean> = {
@@ -242,10 +238,6 @@ async function fetchTopContributors(
     );
 
     const contributors = aggregateContributors(response.results || []);
-
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchTopContributors] ${fecCandidateId}: found ${contributors.length} contributors`);
-    }
 
     return contributors;
   } catch (error) {
@@ -322,10 +314,6 @@ async function fetchIndustryBreakdown(
 
     const committeeIds = await getCandidateCommittees(fecCandidateId, cycle);
 
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchIndustryBreakdown] ${fecCandidateId}: committees = ${committeeIds.join(", ")}`);
-    }
-
     // Fetch raw employer data — request 100 results to get better classification coverage
     const buildParams = (idKey: string, idValue: string): Record<string, string | number | boolean> => {
       const p: Record<string, string | number | boolean> = {
@@ -377,10 +365,6 @@ async function fetchIndustryBreakdown(
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
 
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchIndustryBreakdown] ${fecCandidateId}: classified ${sorted.length} sectors`);
-    }
-
     // Normalize percentages so they sum to 100%
     const sectorSum = sorted.reduce((sum, [, total]) => sum + total, 0);
     const denominator = sectorSum > 0 ? sectorSum : 1;
@@ -409,9 +393,6 @@ export async function fetchMoneyForCandidate(
   // Check in-memory cache first
   const cached = moneyCache.get(fecCandidateId);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchMoneyForCandidate] Cache hit for ${fecCandidateId}`);
-    }
     return cached.data;
   }
 
@@ -457,10 +438,6 @@ export async function fetchMoneyForCandidate(
       fetchTopContributors(fecCandidateId, totals.cycle),
       fetchIndustryBreakdown(fecCandidateId, raised, totals.cycle),
     ]);
-
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchMoneyForCandidate] ${fecCandidateId}: raised=${raised}, contributors=${topContributors.length}, industries=${industryBreakdown.length}`);
-    }
 
     const sources: Source[] = [
       {

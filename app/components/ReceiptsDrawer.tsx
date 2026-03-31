@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, Suspense } from "react";
-import { useSearchParams, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReceipts } from "../store/receipts-store";
 import { useTopicLens } from "../store/topic-lens-store";
@@ -9,8 +8,6 @@ import Button from "./ui/Button";
 import InfoTip from "./ui/InfoTip";
 
 function ReceiptsDrawerContent() {
-  const searchParams = useSearchParams();
-  const pathname = usePathname();
   const { isOpen, data, closeReceipts } = useReceipts();
   const { selectedTopic } = useTopicLens();
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -19,7 +16,6 @@ function ReceiptsDrawerContent() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [cardCopied, setCardCopied] = useState(false);
-  const [receiptKey, setReceiptKey] = useState<string | null>(null);
 
   // Focus management
   useEffect(() => {

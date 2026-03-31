@@ -129,16 +129,6 @@ export async function fetchSponsoredBills(
       ? response.sponsoredLegislation
       : response.bills || response.sponsoredLegislation?.bills || [];
     
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchSponsoredBills] ${bioguideId}:`, {
-        hasBills: !!response.bills,
-        hasSponsoredLegislation: !!response.sponsoredLegislation,
-        isArray: Array.isArray(response.sponsoredLegislation),
-        billsCount: bills.length,
-        responseKeys: Object.keys(response),
-      });
-    }
-    
     if (bills.length === 0) {
       recordSourceStatus("congress", true, `No sponsored legislation found for ${bioguideId} in 119th Congress.`);
       return [];
@@ -214,16 +204,6 @@ export async function fetchCosponsoredBills(
         response.cosponsoredLegislation?.bills || 
         (response as any).member?.cosponsoredLegislation?.bills ||
         [];
-    
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchCosponsoredBills] ${bioguideId}:`, {
-        hasBills: !!response.bills,
-        hasCosponsoredLegislation: !!response.cosponsoredLegislation,
-        isArray: Array.isArray(response.cosponsoredLegislation),
-        billsCount: bills.length,
-        responseKeys: Object.keys(response),
-      });
-    }
     
     if (bills.length === 0) {
       recordSourceStatus("congress", true, `No cosponsored legislation found for ${bioguideId} in 119th Congress.`);

@@ -48,12 +48,12 @@ export default function HomeClient({
   mockPoliticians,
   showDataUnavailableIndicator = false,
 }: HomeProps) {
-  const [zipCode, setZipCode]                     = useState("");
-  const [districtInfo, setDistrictInfo]           = useState<DistrictInfo | null>(null);
-  const [districtMembers, setDistrictMembers]     = useState<Member[]>([]);
-  const [zipError, setZipError]                   = useState(false);
-  const [newsletterEmail, setNewsletterEmail]     = useState("");
-  const [newsletterStatus, setNewsletterStatus]   = useState<
+  const [zipCode, setZipCode] = useState("");
+  const [districtInfo, setDistrictInfo] = useState<DistrictInfo | null>(null);
+  const [districtMembers, setDistrictMembers] = useState<Member[]>([]);
+  const [zipError, setZipError] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterStatus, setNewsletterStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
 
@@ -128,10 +128,12 @@ export default function HomeClient({
             <input
               type="text"
               placeholder="Enter your ZIP code"
+              aria-label="ZIP code"
               value={zipCode}
               onChange={(e) => { setZipCode(e.target.value); setZipError(false); }}
               maxLength={5}
               pattern="[0-9]{5}"
+              inputMode="numeric"
               className="flex-1 rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-blue-200/50 focus:border-white/50 focus:outline-none focus:ring-2 focus:ring-white/20"
             />
             <button
@@ -436,6 +438,7 @@ export default function HomeClient({
                   type="email"
                   required
                   placeholder="you@example.com"
+                  aria-label="Email address"
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
                   disabled={newsletterStatus === "loading"}

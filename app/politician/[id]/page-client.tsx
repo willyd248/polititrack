@@ -132,14 +132,14 @@ export default function PoliticianPageClient({
 }: PoliticianPageClientProps) {
   const politician = politicianForCompare;
 
-  const [moneyData, setMoneyData]           = useState<MoneyModule | null>(initialMoneyData || null);
-  const [moneyLoading, setMoneyLoading]     = useState(false);
-  const [moneyError, setMoneyError]         = useState(false);
-  const [insights, setInsights]             = useState<Insights | null>(null);
+  const [moneyData, setMoneyData] = useState<MoneyModule | null>(initialMoneyData || null);
+  const [moneyLoading, setMoneyLoading] = useState(false);
+  const [moneyError, setMoneyError] = useState(false);
+  const [insights, setInsights] = useState<Insights | null>(null);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [realStatements, setRealStatements] = useState<Statement[] | null>(null);
   const [statementsLoading, setStatementsLoading] = useState(false);
-  const [activeSection, setActiveSection]   = useState("follow-money");
+  const [activeSection, setActiveSection] = useState("follow-money");
 
   const searchParams = useSearchParams();
   const { openReceipts }                               = useReceipts();
@@ -209,7 +209,7 @@ export default function PoliticianPageClient({
     })
       .then((r) => r.json())
       .then((d) => { if (d.insights) setInsights(d.insights); })
-      .catch((e) => console.warn("[insights]", e))
+      .catch(() => {})
       .finally(() => setInsightsLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [member?.bioguideId, moneyData, memberVotes.length, sponsoredBills?.length]);

@@ -375,7 +375,17 @@ async function safeFetch<T>(
  * Strip HTML tags from summary text
  */
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, "").trim();
+  let text = html.replace(/<[^>]*>/g, "");
+  // Decode common HTML entities left after tag stripping
+  text = text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ");
+  return text.trim();
 }
 
 /**
@@ -456,20 +466,11 @@ export function mapCongressBillToBill(congressBill: CongressBill): Bill {
  */
 export async function fetchBillById(id: string): Promise<Bill | null> {
   const parsed = parseBillId(id);
-  if (!parsed) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(`[fetchBillById] Invalid bill ID format: ${id}`);
-    }
-    return null;
-  }
+  if (!parsed) return null;
 
   const { congress, type, number } = parsed;
   const typeLower = type.toLowerCase();
   const basePath = `/bill/${congress}/${typeLower}/${number}`;
-
-  if (process.env.NODE_ENV === "development") {
-    console.log(`[fetchBillById] Fetching bill: ${id} -> ${basePath}`);
-  }
 
   try {
     const { congressFetch } = await import("../congress");
@@ -486,12 +487,7 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
         safeFetch<CongressTextResponse>(congressFetch, `${basePath}/text`, 1800),
       ]);
 
-    if (!billRes.bill) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`[fetchBillById] No bill data in response for ${id}`);
-      }
-      return null;
-    }
+    if (!billRes.bill) return null;
 
     const congressBill = billRes.bill;
     const updateDate = congressBill.updateDate || "";
@@ -586,10 +582,6 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
     // --- Status ---
     const status = mapStatus(congressBill);
 
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchBillById] Successfully built bill ${id}: ${congressBill.title} (${actionsArray.length} actions, ${cosponsors.length} cosponsors, ${subjectsList.length} subjects)`);
-    }
-
     return {
       id: formatBillId(congress, type, String(congressBill.number)),
       name: `${type} ${String(congressBill.number)}: ${congressBill.title}`,
@@ -614,9 +606,7 @@ export async function fetchBillById(id: string): Promise<Bill | null> {
       timeline,
       summarySources,
     };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[fetchBillById] Failed to fetch bill ${id}:`, errorMessage);
+  } catch {
     return null;
   }
 }
@@ -643,8 +633,7 @@ export async function fetchBills(limit: number = 10): Promise<Bill[]> {
     }
 
     return response.bills.map(mapCongressBillToBill);
-  } catch (error) {
-    console.error("Failed to fetch bills:", error);
+  } catch {
     return [];
   }
 }

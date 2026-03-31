@@ -20,8 +20,7 @@ export async function POST(req: NextRequest) {
   const audienceId = process.env.RESEND_AUDIENCE_ID;
 
   if (!apiKey || !audienceId) {
-    // Env vars not set — log so signups appear in Vercel function logs
-    console.log(`[PolitiTrack] Newsletter signup (no Resend config): ${email}`);
+    console.log("[PolitiTrack] Newsletter signup received (no Resend config)");
     return NextResponse.json({ ok: true });
   }
 
@@ -32,10 +31,10 @@ export async function POST(req: NextRequest) {
       audienceId,
       unsubscribed: false,
     });
-    console.log(`[PolitiTrack] Newsletter signup stored in Resend: ${email}`);
+    // Signup stored successfully
   } catch (err) {
     // Log but don't surface storage errors to the user
-    console.error("[PolitiTrack] Failed to save subscriber to Resend:", err);
+    console.error("[PolitiTrack] Failed to save subscriber to Resend");
   }
 
   return NextResponse.json({ ok: true });

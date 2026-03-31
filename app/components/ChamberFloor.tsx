@@ -10,6 +10,16 @@ interface ChamberFloorProps {
   members: Member[];
 }
 
+function getPartyBackgroundColor(partyUpper: string, partyLower: string): string {
+  if (partyUpper === "D" || partyUpper === "DEM" || partyLower.includes("democrat")) {
+    return "#1B2A4A";
+  }
+  if (partyUpper === "R" || partyUpper === "REP" || partyLower.includes("republican")) {
+    return "#8B2332";
+  }
+  return "#a1a1aa";
+}
+
 // State abbreviations for display
 const STATE_ABBREVIATIONS: Record<string, string> = {
   "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA",
@@ -114,9 +124,6 @@ export default function ChamberFloor({ members }: ChamberFloorProps) {
       );
       if (seat) {
         seat.member = member;
-      } else if (process.env.NODE_ENV === "development") {
-        // Debug: log unmatched members
-        console.log(`[ChamberFloor] Could not find seat for ${member.fullName} - ${member.state} District ${member.district} (normalized: ${normalizedDistrict})`);
       }
     });
 
@@ -280,33 +287,7 @@ function SenateSeat({
   const partyUpper = party.toUpperCase().trim();
   const partyLower = party.toLowerCase().trim();
   
-  // Determine party color - handle both single-letter codes (D, R, I) and full names
-  let partyColor = "bg-zinc-400";
-  let backgroundColor = "#a1a1aa"; // zinc-400 default
-  
-  if (
-    partyUpper === "D" || 
-    partyUpper === "DEM" ||
-    partyLower.includes("democrat")
-  ) {
-    partyColor = "bg-blue-500";
-    backgroundColor = "#1B2A4A"; // navy - Democrat
-  } else if (
-    partyUpper === "R" || 
-    partyUpper === "REP" ||
-    partyLower.includes("republican")
-  ) {
-    partyColor = "bg-red-500";
-    backgroundColor = "#8B2332"; // deep red - Republican
-  }
-  
-  if (process.env.NODE_ENV === "development") {
-    if (!party) {
-      console.log(`[ChamberFloor] Member ${seat.member.fullName} has no party field`);
-    } else {
-      console.log(`[ChamberFloor] Member ${seat.member.fullName} - Party: "${party}" (upper: "${partyUpper}", lower: "${partyLower}") - Color: ${backgroundColor}`);
-    }
-  }
+  const backgroundColor = getPartyBackgroundColor(partyUpper, partyLower);
 
   return (
     <Link
@@ -346,34 +327,8 @@ function HouseSeat({
   const party = seat.member.party || "";
   const partyUpper = party.toUpperCase().trim();
   const partyLower = party.toLowerCase().trim();
-  
-  // Determine party color - handle both single-letter codes (D, R, I) and full names
-  let partyColor = "bg-zinc-400";
-  let backgroundColor = "#a1a1aa"; // zinc-400 default
-  
-  if (
-    partyUpper === "D" || 
-    partyUpper === "DEM" ||
-    partyLower.includes("democrat")
-  ) {
-    partyColor = "bg-blue-500";
-    backgroundColor = "#1B2A4A"; // navy - Democrat
-  } else if (
-    partyUpper === "R" || 
-    partyUpper === "REP" ||
-    partyLower.includes("republican")
-  ) {
-    partyColor = "bg-red-500";
-    backgroundColor = "#8B2332"; // deep red - Republican
-  }
-  
-  if (process.env.NODE_ENV === "development") {
-    if (!party) {
-      console.log(`[ChamberFloor] Member ${seat.member.fullName} has no party field`);
-    } else {
-      console.log(`[ChamberFloor] Member ${seat.member.fullName} - Party: "${party}" (upper: "${partyUpper}", lower: "${partyLower}") - Color: ${backgroundColor}`);
-    }
-  }
+
+  const backgroundColor = getPartyBackgroundColor(partyUpper, partyLower);
 
   return (
     <Link
