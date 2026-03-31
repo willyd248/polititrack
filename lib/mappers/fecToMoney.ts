@@ -257,8 +257,58 @@ async function fetchTopContributors(
 }
 
 /**
- * Fetch industry/employer breakdown for a candidate
- * Uses /schedules/schedule_a/by_employer/ with committee_id (correct OpenFEC endpoint)
+ * Industry classification rules — match employer/organization names to real sectors.
+ * Order matters: first match wins, so put specific patterns before generic ones.
+ */
+const INDUSTRY_RULES: Array<{ sector: string; patterns: RegExp }> = [
+  { sector: "Defense", patterns: /DEFENSE|LOCKHEED|RAYTHEON|BOEING|NORTHROP|GRUMMAN|GENERAL DYNAMICS|BAE SYSTEMS|L3HARRIS|LEIDOS|SAIC|HUNTINGTON INGALLS|MILITARY|ARMED FORCES/ },
+  { sector: "Healthcare", patterns: /HEALTH|PHARMA|MEDICAL|HOSPITAL|AETNA|CIGNA|UNITEDHEALTH|HUMANA|ANTHEM|BLUECROSS|BLUE CROSS|KAISER|PFIZER|JOHNSON & JOHNSON|MERCK|ABBOTT|AMGEN|BIOTECH|NURSE|PHYSICIAN|DOCTOR|DENTAL|OPTOM|CLINIC|SURGICAL|ORTHO|CARDIO|ONCOL/ },
+  { sector: "Energy", patterns: /ENERGY|OIL|GAS|PETROLEUM|EXXON|CHEVRON|SHELL|CONOCO|HALLIBURTON|SCHLUMBERGER|SOLAR|WIND POWER|PIPELINE|DRILLING|REFIN|UTILITIES|ELECTRIC POWER|COAL|MINING|NUCLEAR/ },
+  { sector: "Finance & Insurance", patterns: /BANK|FINANCIAL|INSURANCE|GOLDMAN|JPMORGAN|JP MORGAN|WELLS FARGO|MORGAN STANLEY|CITIGROUP|CITI|CREDIT SUISSE|BLACKROCK|VANGUARD|FIDELITY|CAPITAL GROUP|STATE STREET|PRUDENTIAL|METLIFE|ALLSTATE|BERKSHIRE|HEDGE|PRIVATE EQUITY|VENTURE CAPITAL|INVESTMENT|SECURITIES|BROKER|MUTUAL FUND|ASSET MANAGE/ },
+  { sector: "Technology", patterns: /TECH|GOOGLE|ALPHABET|MICROSOFT|APPLE INC|META PLATFORMS|FACEBOOK|AMAZON|ORACLE|INTEL|IBM|CISCO|SALESFORCE|ADOBE|NVIDIA|QUALCOMM|SOFTWARE|COMPUTER|CYBER|DATA|CLOUD|DIGITAL|\.COM|SEMICONDUCTOR|SILICON/ },
+  { sector: "Real Estate", patterns: /REAL ESTATE|REALTOR|REALTY|HOUSING|PROPERTY|MORTGAGE|HOME BUILD|CONSTRUCTION|DEVELOP.*GROUP|DEVELOP.*CORP|DEVELOP.*LLC|BUILDING|ARCHITECT/ },
+  { sector: "Education", patterns: /EDUCATION|TEACHER|UNIVERSITY|COLLEGE|SCHOOL|PROFESSOR|ACADEMIC|TUTOR|LIBRARIAN|STUDENT|HIGHER ED/ },
+  { sector: "Agriculture", patterns: /AGRICULTUR|FARM|RANCH|CROP|LIVESTOCK|DAIRY|CATTLE|POULTRY|GRAIN|SEED|FERTILIZ|MONSANTO|CARGILL|ARCHER DANIELS|ADM|DEERE|AGRI/ },
+  { sector: "Transportation", patterns: /TRANSPORT|AIRLINE|RAILROAD|RAIL|FREIGHT|SHIPPING|LOGISTICS|TRUCKING|AVIATION|PILOT|FEDEX|UPS(?:\s|$)|DELTA AIR|UNITED AIR|AMERICAN AIR|SOUTHWEST AIR|UBER|LYFT|TRANSIT/ },
+  { sector: "Telecommunications", patterns: /TELECOM|COMCAST|VERIZON|AT&T|T-MOBILE|SPRINT|CHARTER COMM|CABLE|WIRELESS|BROADCAST|MEDIA GROUP|NEWS CORP|DISNEY|WARNER|NBC|CBS|FOX\s/ },
+  { sector: "Labor Unions", patterns: /LABOR|UNION|WORKERS|AFL.CIO|SEIU|TEAMSTER|AFSCME|UAW|IBEW|UFCW|CARPENTERS|PLUMBERS|IRONWORKER|SHEET METAL|OPERATING ENGINEER|PIPE ?FITTER|MACHINISTS|STEELWORK/ },
+  { sector: "Legal", patterns: /LAW\b|ATTORNEY|LEGAL|LAWYER|FIRM.*LLP|LLP$|LITIGATION|COUNSEL/ },
+  { sector: "Retail & Consumer", patterns: /RETAIL|WALMART|TARGET|COSTCO|HOME DEPOT|LOWE'S|CONSUMER|RESTAURANT|FOOD SERVICE|MCDONALD|STARBUCK|HOSPITALITY|HOTEL|MARRIOTT|HILTON/ },
+  { sector: "Manufacturing", patterns: /MANUFACTUR|INDUSTRIAL|FACTORY|STEEL|ALUMINUM|CHEMICAL|DOW CHEM|DUPONT|3M|CATERPILLAR|HONEYWELL|GENERAL ELECTRIC/ },
+  { sector: "Lobbying & Political", patterns: /LOBBY|POLITICAL|PAC$|COMMITTEE|CAMPAIGN|GOVERNMENT AFFAIR|PUBLIC AFFAIR|ADVOCACY|CIVIC/ },
+];
+
+/**
+ * Employers/occupations that are noise for industry classification — these are
+ * individual donor statuses, not actual industries.
+ */
+const NOISE_EMPLOYERS = new Set([
+  "SELF-EMPLOYED", "SELF EMPLOYED", "SELF", "NOT EMPLOYED", "NONE", "N/A",
+  "RETIRED", "HOMEMAKER", "STUDENT", "UNEMPLOYED", "NULL", "INFORMATION REQUESTED",
+  "INFORMATION REQUESTED PER BEST EFFORTS", "-", "",
+]);
+
+/**
+ * Classify an employer/organization name into an industry sector.
+ * Returns null if the name is noise or unclassifiable.
+ */
+function classifyIndustry(name: string): string | null {
+  const upper = name.toUpperCase().trim();
+  if (NOISE_EMPLOYERS.has(upper)) return null;
+
+  for (const rule of INDUSTRY_RULES) {
+    if (rule.patterns.test(upper)) return rule.sector;
+  }
+
+  return null; // Unclassified — will be grouped separately
+}
+
+/**
+ * Fetch industry breakdown for a candidate by classifying employer/org contributions
+ * into real industry sectors (Defense, Healthcare, Finance, etc.).
+ *
+ * Uses /schedules/schedule_a/by_employer/ with a larger result set, then maps
+ * each employer to an industry sector via keyword classification.
  */
 async function fetchIndustryBreakdown(
   fecCandidateId: string,
@@ -270,97 +320,73 @@ async function fetchIndustryBreakdown(
 
     const { fecFetch } = await import("../fec");
 
-    // Get committee IDs first
     const committeeIds = await getCandidateCommittees(fecCandidateId, cycle);
 
     if (process.env.NODE_ENV === "development") {
       console.log(`[fetchIndustryBreakdown] ${fecCandidateId}: committees = ${committeeIds.join(", ")}`);
     }
 
-    const industryMap = new Map<string, number>();
-
-    // Build the employer query params
+    // Fetch raw employer data — request 100 results to get better classification coverage
     const buildParams = (idKey: string, idValue: string): Record<string, string | number | boolean> => {
       const p: Record<string, string | number | boolean> = {
         [idKey]: idValue,
         sort: "-total",
-        per_page: 10,
+        per_page: 100,
         sort_hide_null: true,
       };
       if (cycle) p.two_year_transaction_period = cycle;
       return p;
     };
 
-    if (committeeIds.length > 0) {
-      // Query by employer for the primary committee
-      const params = buildParams("committee_id", committeeIds[0]);
+    const idKey = committeeIds.length > 0 ? "committee_id" : "candidate_id";
+    const idValue = committeeIds.length > 0 ? committeeIds[0] : fecCandidateId;
+    const params = buildParams(idKey, idValue);
 
-      const response = await fecFetch<FecEmployerResponse>(
-        `/schedules/schedule_a/by_employer/`,
-        { params, revalidate: 86400 }
-      );
+    const response = await fecFetch<FecEmployerResponse>(
+      `/schedules/schedule_a/by_employer/`,
+      { params, revalidate: 86400 }
+    );
 
-      if (response.results) {
-        for (const item of response.results) {
-          if (item.employer && item.total && item.total > 0) {
-            const current = industryMap.get(item.employer) || 0;
-            industryMap.set(item.employer, current + item.total);
-          }
-        }
-      }
-    } else {
-      // Fallback: try with candidate_id directly
-      const params = buildParams("candidate_id", fecCandidateId);
+    // Classify each employer into an industry sector and aggregate totals
+    const sectorTotals = new Map<string, number>();
+    let unclassifiedTotal = 0;
 
-      const response = await fecFetch<FecEmployerResponse>(
-        `/schedules/schedule_a/by_employer/`,
-        { params, revalidate: 86400 }
-      );
+    for (const item of response.results || []) {
+      if (!item.employer || !item.total || item.total <= 0) continue;
 
-      if (response.results) {
-        for (const item of response.results) {
-          if (item.employer && item.total && item.total > 0) {
-            industryMap.set(item.employer, item.total);
-          }
+      const sector = classifyIndustry(item.employer);
+      if (sector) {
+        sectorTotals.set(sector, (sectorTotals.get(sector) || 0) + item.total);
+      } else {
+        // Only count genuinely unclassified orgs, not noise
+        const upper = item.employer.toUpperCase().trim();
+        if (!NOISE_EMPLOYERS.has(upper)) {
+          unclassifiedTotal += item.total;
         }
       }
     }
 
-    // Clean up employer names: filter junk, normalize labels
-    const JUNK_EMPLOYERS = new Set(["NULL", "NONE", "N/A", "INFORMATION REQUESTED", "INFORMATION REQUESTED PER BEST EFFORTS"]);
-    const LABEL_MAP: Record<string, string> = {
-      "NOT EMPLOYED": "Not Employed",
-      "SELF EMPLOYED": "Self-Employed",
-      "SELF": "Self-Employed",
-      "RETIRED": "Retired",
-      "HOMEMAKER": "Homemaker",
-      "STUDENT": "Student",
-    };
-
-    const cleaned = new Map<string, number>();
-    for (const [employer, total] of industryMap.entries()) {
-      const upper = employer.toUpperCase().trim();
-      if (JUNK_EMPLOYERS.has(upper) || upper === "" || upper === "-") continue;
-
-      const label = LABEL_MAP[upper] || employer;
-      const existing = cleaned.get(label) || 0;
-      cleaned.set(label, existing + total);
+    // Add "Other" bucket if there's meaningful unclassified money
+    if (unclassifiedTotal > 0) {
+      sectorTotals.set("Other", unclassifiedTotal);
     }
 
-    const sorted = Array.from(cleaned.entries())
+    if (sectorTotals.size === 0) return [];
+
+    const sorted = Array.from(sectorTotals.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
 
     if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchIndustryBreakdown] ${fecCandidateId}: found ${sorted.length} employers`);
+      console.log(`[fetchIndustryBreakdown] ${fecCandidateId}: classified ${sorted.length} sectors`);
     }
 
-    // Normalize percentages so they sum to 100% (use sum of employer totals as denominator)
-    const employerSum = sorted.reduce((sum, [, total]) => sum + total, 0);
-    const denominator = employerSum > 0 ? employerSum : 1;
+    // Normalize percentages so they sum to 100%
+    const sectorSum = sorted.reduce((sum, [, total]) => sum + total, 0);
+    const denominator = sectorSum > 0 ? sectorSum : 1;
 
-    return sorted.map(([employer, total]) => ({
-      industry: employer,
+    return sorted.map(([sector, total]) => ({
+      industry: sector,
       percentage: Math.round((total / denominator) * 100),
     }));
   } catch (error) {
