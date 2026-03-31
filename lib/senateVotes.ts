@@ -80,7 +80,8 @@ function createSenateVoteSources(
   const month = date.substring(5, 7);
   const day = date.substring(8, 10);
   
-  const xmlUrl = `https://www.senate.gov/legislative/LIS/roll_call_votes/vote${congress}/vote_${congress}_${session}_${rollNumber}.xml`;
+  const paddedRoll = rollNumber.padStart(5, "0");
+  const xmlUrl = `https://www.senate.gov/legislative/LIS/roll_call_votes/vote${congress}${session}/vote_${congress}_${session}_${paddedRoll}.xml`;
   const htmlUrl = `https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_${congress}_${session}.htm`;
   
   return [
@@ -161,57 +162,32 @@ function parseSenateXml(xmlText: string): any {
 }
 
 /**
- * Fetch Senate roll call vote list for a congress/session
+ * Fetch Senate roll call vote list for a congress/session.
+ * Scrapes the HTML vote menu page since Senate.gov doesn't provide an XML vote list.
+ * URL pattern: https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_{congress}_{session}.htm
  */
 async function fetchSenateVoteList(
   congress: number,
   session: number = 1
 ): Promise<string[]> {
   try {
-    const year = new Date().getFullYear();
-    const url = `https://www.senate.gov/legislative/LIS/roll_call_votes/vote${congress}/vote_list_${congress}_${session}.xml`;
-    
+    const url = `https://www.senate.gov/legislative/LIS/roll_call_lists/vote_menu_${congress}_${session}.htm`;
+
     const response = await fetch(url, {
-      next: { revalidate: 3600 }, // 1 hour cache
-      headers: {
-        Accept: "application/xml, text/xml",
-      },
+      next: { revalidate: 3600 },
+      headers: { Accept: "text/html, */*" },
     });
-    
-    if (!response.ok) {
-      return [];
-    }
-    
-    const xmlText = await response.text();
-    const parsed = parseSenateXml(xmlText);
-    
-    // Extract vote numbers from the list
-    const voteNumbers: string[] = [];
-    if (parsed.vote?.votes?.vote) {
-      const votes = Array.isArray(parsed.vote.votes.vote)
-        ? parsed.vote.votes.vote
-        : [parsed.vote.votes.vote];
-      
-      for (const vote of votes) {
-        if (vote.vote_number) {
-          voteNumbers.push(vote.vote_number);
-        }
-      }
-    }
-    
-    // Also try to extract from raw XML if structure is different
-    if (voteNumbers.length === 0) {
-      const voteNumberMatches = xmlText.matchAll(/<vote[_nN]umber>([^<]+)<\/vote[_nN]umber>/gi);
-      for (const match of voteNumberMatches) {
-        voteNumbers.push(match[1].trim());
-      }
-    }
-    
-    // Sort by vote number (descending) and return most recent
-    return voteNumbers
+
+    if (!response.ok) return [];
+
+    const html = await response.text();
+
+    // Links look like: vote_119_1_00659 or vote_119_2_00074
+    const matches = [...html.matchAll(/vote_\d+_\d+_(\d+)/g)];
+    return [...new Set(matches.map((m) => m[1]))]
       .map((n) => parseInt(n, 10))
       .filter((n) => !isNaN(n))
-      .sort((a, b) => b - a)
+      .sort((a, b) => b - a) // descending (most recent first)
       .map((n) => String(n));
   } catch (error) {
     console.warn(`Failed to fetch Senate vote list for ${congress}/${session}:`, error);
@@ -228,7 +204,9 @@ async function fetchSenateVoteDetail(
   session: number
 ): Promise<SenateVoteDetail | null> {
   try {
-    const url = `https://www.senate.gov/legislative/LIS/roll_call_votes/vote${congress}/vote_${congress}_${session}_${rollNumber}.xml`;
+    // Directory uses congress+session concatenated: vote1191, vote1192, etc.
+    const paddedRoll = rollNumber.padStart(5, "0");
+    const url = `https://www.senate.gov/legislative/LIS/roll_call_votes/vote${congress}${session}/vote_${congress}_${session}_${paddedRoll}.xml`;
     
     const response = await fetch(url, {
       next: { revalidate: 3600 }, // 1 hour cache

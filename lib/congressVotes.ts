@@ -104,8 +104,16 @@ export async function fetchMemberVotes(
 ): Promise<Vote[]> {
   try {
     // For Senate members, use Senate.gov XML sources
+    // Try current session first (session 2 = even years, session 1 = odd years)
     if (chamber === "Senate" && member?.lisId) {
-      return await fetchSenateMemberVotes(member.lisId, congress, 1, limit, member.party);
+      const currentYear = new Date().getFullYear();
+      const congressStartYear = 2 * (congress - 1) + 1789;
+      const currentSession = currentYear > congressStartYear ? 2 : 1;
+      const votes = await fetchSenateMemberVotes(member.lisId, congress, currentSession, limit, member.party);
+      if (votes.length > 0) return votes;
+      // Fallback to other session
+      const fallbackSession = currentSession === 2 ? 1 : 2;
+      return await fetchSenateMemberVotes(member.lisId, congress, fallbackSession, limit, member.party);
     }
     
     // For House members, try Congress.gov API (returns empty if not available)
