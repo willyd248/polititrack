@@ -7,25 +7,28 @@ import { Politician } from "../../../data/politicians";
 import { MoneyModule } from "../../../lib/mappers/fecToMoney";
 import { LegislativeActivityItem } from "../../../lib/congressSponsorship";
 import { Statement, Vote } from "../../../data/types";
-import Card from "../../components/ui/Card";
-import Button from "../../components/ui/Button";
-import Chip from "../../components/ui/Chip";
-import Disclosure from "../../components/ui/Disclosure";
-import InlineCitation from "../../components/ui/InlineCitation";
 import Link from "next/link";
 import { useReceipts } from "../../store/receipts-store";
-import { useTopicLens } from "../../store/topic-lens-store";
 import { useCompare } from "../../store/compare-store";
 import { useSaved } from "../../store/saved-store";
 import { stateNameToCode } from "../../../lib/stateConverter";
 
-interface CandidateSearchResult {
-  candidate_id: string;
-  name: string;
-  office: string | null;
-  state: string | null;
-  party: string | null;
-  election_years: number[];
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface InsightConnection {
+  industry: string;
+  amount: string;
+  votingPattern: string;
+  alignment: "High" | "Moderate" | "Low" | "Unknown";
+}
+
+interface Insights {
+  headline: string;
+  summary: string;
+  connections: InsightConnection[];
+  notable: string[];
+  smallDonorPct?: string | null;
+  generatedAt: number;
 }
 
 interface PoliticianPageClientProps {
@@ -39,6 +42,83 @@ interface PoliticianPageClientProps {
   fecCandidateId?: string | null;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatMoney(n: number): string {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n.toLocaleString()}`;
+}
+
+function partyColor(party: string): string {
+  if (party === "D") return "#1B2A4A";
+  if (party === "R") return "#8B2332";
+  return "#75777F";
+}
+
+function partyLabel(party: string): string {
+  if (party === "D") return "Democrat";
+  if (party === "R") return "Republican";
+  if (party === "I") return "Independent";
+  return party || "N/A";
+}
+
+function alignmentBg(a: InsightConnection["alignment"]): string {
+  if (a === "High") return "bg-red-50 border-red-200";
+  if (a === "Moderate") return "bg-amber-50 border-amber-200";
+  if (a === "Low") return "bg-green-50 border-green-200";
+  return "bg-gray-50 border-gray-200";
+}
+
+function alignmentColor(a: InsightConnection["alignment"]): string {
+  if (a === "High") return "#A63744";
+  if (a === "Moderate") return "#D97706";
+  if (a === "Low") return "#1B6B3A";
+  return "#75777F";
+}
+
+// ─── Nav sections ─────────────────────────────────────────────────────────────
+
+const NAV_SECTIONS = [
+  { id: "follow-money", label: "Follow the Money" },
+  { id: "finance",      label: "Campaign Finance" },
+  { id: "votes",        label: "Votes" },
+  { id: "legislation",  label: "Legislation" },
+  { id: "statements",   label: "Statements" },
+];
+
+// ─── Side Nav ─────────────────────────────────────────────────────────────────
+
+function SideNav({ activeSection }: { activeSection: string }) {
+  return (
+    <aside className="hidden lg:flex fixed left-0 top-16 h-[calc(100vh-4rem)] w-44 flex-col border-r border-gray-200 bg-white z-10">
+      <nav className="flex-1 px-3 py-6 space-y-0.5">
+        {NAV_SECTIONS.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => document.getElementById(s.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className={`block w-full text-left px-3 py-2 rounded text-sm font-medium transition-all duration-150 ${
+              activeSection === s.id
+                ? "bg-[#041534] text-white"
+                : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </nav>
+      <div className="px-4 pb-6">
+        <div className="h-px bg-gray-100 mb-3" />
+        <p className="text-[10px] text-gray-400 leading-relaxed">
+          Congress.gov · OpenFEC · Claude AI
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+// ─── Main Component ────────────────────────────────────────────────────────────
+
 export default function PoliticianPageClient({
   member,
   useMockData,
@@ -49,1507 +129,761 @@ export default function PoliticianPageClient({
   memberVotes = [],
   fecCandidateId,
 }: PoliticianPageClientProps) {
-  // Use politicianForCompare for all modules (Money/Votes remain mock for now)
   const politician = politicianForCompare;
 
-  // Lazy-load FEC financial data client-side
-  const [moneyData, setMoneyData] = useState<MoneyModule | null>(initialMoneyData || null);
-  const [moneyLoading, setMoneyLoading] = useState(false);
-  const [moneyError, setMoneyError] = useState(false);
+  const [moneyData, setMoneyData]           = useState<MoneyModule | null>(initialMoneyData || null);
+  const [moneyLoading, setMoneyLoading]     = useState(false);
+  const [moneyError, setMoneyError]         = useState(false);
+  const [insights, setInsights]             = useState<Insights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [realStatements, setRealStatements] = useState<Statement[] | null>(null);
+  const [statementsLoading, setStatementsLoading] = useState(false);
+  const [activeSection, setActiveSection]   = useState("follow-money");
 
+  const searchParams = useSearchParams();
+  const { openReceipts }                               = useReceipts();
+  const { addPolitician, removePolitician, isSelected } = useCompare();
+  const { toggleSavePolitician, isPoliticianSaved }     = useSaved();
+
+  // Display values
+  const displayName    = member?.fullName || politician.name || "Unknown Member";
+  const displayState   = stateNameToCode(member?.state || politician.state || "N/A");
+  const displayParty   = member?.party || politician.role || "N/A";
+  const displayChamber = member
+    ? member.chamber === "House" ? "House" : "Senate"
+    : politician.role?.toUpperCase().startsWith("H") ? "House" : "Senate";
+  const displayDistrict = member?.district;
+
+  const billsSponsored = sponsoredBills?.length ?? politician.metrics.billsSponsored;
+  const votesCount     = memberVotes?.length ?? politician.metrics.votesThisYear;
+  const topDonor       = moneyData?.industryBreakdown?.[0]?.industry ?? politician.metrics.topDonorCategory;
+
+  const isSaved    = member?.bioguideId ? isPoliticianSaved(member.bioguideId) : false;
+  const isCompared = isSelected(politician.id);
+
+  // Lazy-load FEC money
   useEffect(() => {
     if (initialMoneyData || !fecCandidateId) return;
     let cancelled = false;
     setMoneyLoading(true);
     fetch(`/api/fec/money?fecId=${encodeURIComponent(fecCandidateId)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled && data.moneyData) {
-          setMoneyData(data.moneyData);
-        }
-        if (data.error) setMoneyError(true);
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && d.moneyData) setMoneyData(d.moneyData);
+        if (d.error) setMoneyError(true);
       })
-      .catch(() => {
-        if (!cancelled) setMoneyError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setMoneyLoading(false);
-      });
+      .catch(() => { if (!cancelled) setMoneyError(true); })
+      .finally(() => { if (!cancelled) setMoneyLoading(false); });
     return () => { cancelled = true; };
   }, [fecCandidateId, initialMoneyData]);
 
-  // Use real money data if available, otherwise use mock data
-  const displayMoneyData = moneyData || {
-    totals: {
-      raised: 0,
-      spent: 0,
-      cashOnHand: 0,
-    },
-    topContributors: politician.money.topContributors,
-    industryBreakdown: [],
-    sources: politician.money.sources,
-  };
-
-  // Compute Key Metrics from real data when available
-  const displayBillsSponsored = member
-    ? (sponsoredBills?.length ?? 0)
-    : politician.metrics.billsSponsored;
-  const displayVotesThisYear = member
-    ? (memberVotes?.length ?? 0)
-    : politician.metrics.votesThisYear;
-  const displayTopDonorCategory = moneyData?.industryBreakdown?.[0]?.industry
-    ?? (moneyLoading ? "Loading…" : politician.metrics.topDonorCategory);
-  
-  // Get display values from member if available, otherwise from politician
-  // For real members, always use member data; politicianForCompare is only for mock modules
-  const displayName = member?.fullName || politician.name || "Unknown Member";
-  const displayRole = member
-    ? member.chamber === "House"
-      ? "H"
-      : "S"
-    : politician.role;
-  const displayState = member?.state || politician.state || "N/A";
-  const displayDistrict = member?.district || politician.district;
-  const displayParty = member?.party ?? "N/A";
-  const displayCommittees = politician.committees; // Committees remain from mock data for now
-  
-  // Generate Key Takeaways from member data for real members
-  const keyTakeaways = member && !useMockData
-    ? [
-        `${member.fullName || "This member"} represents ${stateNameToCode(member.state || "N/A")}${member.chamber === "House" && member.district ? `, D${member.district}` : ""}`,
-        `Party: ${member.party || "N/A"}`,
-        member.chamber === "House"
-          ? "Member of the U.S. House of Representatives"
-          : "Member of the U.S. Senate",
-      ]
-    : politician.keyTakeaways;
-
-  const searchParams = useSearchParams();
-  const { openReceipts } = useReceipts();
-  const { selectedTopic } = useTopicLens();
-  const { addPolitician, removePolitician, isSelected } = useCompare();
-  const { toggleSavePolitician, isPoliticianSaved } = useSaved();
-  
-  // State for real statements from API
-  const [realStatements, setRealStatements] = useState<Statement[] | null>(null);
-  const [statementsLoading, setStatementsLoading] = useState(false);
-  
-  // State for health status
-  const [healthStatus, setHealthStatus] = useState<{
-    congress: "OK" | "Degraded" | "Down" | "Unknown";
-    openfec: "OK" | "Degraded" | "Down" | "Unknown";
-  } | null>(null);
-
-  // Fetch real statements if member exists
+  // Generate AI insights once money + votes data is ready
   useEffect(() => {
-    if (!member || !member.bioguideId) {
-      setRealStatements(null);
-      return;
-    }
-    
+    if (!member?.bioguideId || insightsLoading || insights) return;
+    const hasData = moneyData !== null || memberVotes.length > 0 || (sponsoredBills?.length ?? 0) > 0;
+    if (!hasData) return;
+
+    setInsightsLoading(true);
+    fetch("/api/insights", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({
+        bioguideId:        member.bioguideId,
+        memberName:        displayName,
+        chamber:           displayChamber,
+        state:             displayState,
+        party:             displayParty,
+        totalRaised:       moneyData?.totals.raised,
+        topContributors:   moneyData?.topContributors ?? [],
+        industryBreakdown: moneyData?.industryBreakdown ?? [],
+        recentVotes: memberVotes.slice(0, 8).map((v) => ({
+          description: v.description,
+          position:    v.position,
+          topic:       v.topic,
+          date:        v.date,
+        })),
+        sponsoredBills:   (sponsoredBills ?? []).slice(0, 5).map((b) => ({ title: b.title, topic: b.topic })),
+        cosponsoredBills: (cosponsoredBills ?? []).slice(0, 5).map((b) => ({ title: b.title, topic: b.topic })),
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (d.insights) setInsights(d.insights); })
+      .catch((e) => console.warn("[insights]", e))
+      .finally(() => setInsightsLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [member?.bioguideId, moneyData, memberVotes.length, sponsoredBills?.length]);
+
+  // Fetch press statements
+  useEffect(() => {
+    if (!member?.bioguideId) return;
     setStatementsLoading(true);
     fetch(`/api/member/press?bioguideId=${encodeURIComponent(member.bioguideId)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.statements && Array.isArray(data.statements)) {
-          setRealStatements(data.statements);
-        } else {
-          setRealStatements([]);
-        }
-      })
-      .catch((error) => {
-        console.warn("Failed to fetch statements:", error);
-        setRealStatements([]);
-      })
-      .finally(() => {
-        setStatementsLoading(false);
-      });
-  }, [member]);
-  
-  // Fetch health status
+      .then((r) => r.json())
+      .then((d) => setRealStatements(Array.isArray(d.statements) ? d.statements : []))
+      .catch(() => setRealStatements([]))
+      .finally(() => setStatementsLoading(false));
+  }, [member?.bioguideId]);
+
+  // Scroll spy
   useEffect(() => {
-    fetch("/api/health")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.sources && Array.isArray(data.sources)) {
-          const congress = data.sources.find((s: any) => 
-            s.name === "Congress.gov" || s.name?.toLowerCase().includes("congress")
-          );
-          const openfec = data.sources.find((s: any) => 
-            s.name === "OpenFEC" || s.name?.toLowerCase().includes("fec")
-          );
-          setHealthStatus({
-            congress: (congress?.status as "OK" | "Degraded" | "Down" | "Unknown") || "Unknown",
-            openfec: (openfec?.status as "OK" | "Degraded" | "Down" | "Unknown") || "Unknown",
-          });
-        } else {
-          setHealthStatus({
-            congress: "Unknown",
-            openfec: "Unknown",
-          });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) setActiveSection(e.target.id);
         }
-      })
-      .catch((error) => {
-        console.warn("Failed to fetch health status:", error);
-        setHealthStatus({
-          congress: "Unknown",
-          openfec: "Unknown",
-        });
-      });
+      },
+      { rootMargin: "-40% 0px -55% 0px" }
+    );
+    NAV_SECTIONS.forEach((s) => {
+      const el = document.getElementById(s.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
   }, []);
 
-  // Handle receipt deep link on initial page load only
+  // Receipt deep-link
   useEffect(() => {
-    const receiptParam = searchParams.get("receipt");
-    if (!receiptParam) return;
-
-    if (receiptParam === "profile") {
-      handleProfileReceipts();
-    } else if (receiptParam === "money") {
-      handleMoneyReceipts();
-    } else if (receiptParam.startsWith("votes-")) {
-      const topic = receiptParam.split("-")[1];
-      if (topic) {
-        handleVoteTopicReceipts(topic);
-      }
-    } else if (receiptParam === "statements") {
-      handleStatementsReceipts();
+    const param = searchParams.get("receipt");
+    if (param === "money" && moneyData) {
+      openReceipts({ heading: "Campaign Finance Sources", subheading: displayName, sources: moneyData.sources });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, []);
 
-  // Create profile sources for real members
-  const createProfileSources = (): Array<{
-    title: string;
-    publisher?: string;
-    date?: string;
-    excerpt?: string;
-    url: string;
-  }> => {
-    if (!member) return [];
-    
-    const sources = [
-      {
-        title: "Member Profile",
-        publisher: "Congress.gov",
-        date: new Date().getFullYear().toString(),
-        excerpt: `Official member profile and biographical information for ${member.fullName}.`,
-        url: `https://www.congress.gov/member/${member.bioguideId}/${member.bioguideId}`,
-      },
-    ];
-    
-    // Add FEC-ID linkage source if fecCandidateId exists
-    if (member.fecCandidateId) {
-      sources.push({
-        title: "FEC Candidate ID Linkage",
-        publisher: "United States Congress Legislators Dataset",
-        url: "https://github.com/unitedstates/congress-legislators",
-        excerpt: `FEC candidate ID ${member.fecCandidateId} linked via the public unitedstates/congress-legislators dataset.`,
-        date: new Date().getFullYear().toString(),
-      });
-    }
-    
-    // Add official biography URL if available (Congress.gov structure)
-    if (member.bioguideId) {
-      sources.push({
-        title: "Official Biography",
-        publisher: "U.S. Congress",
-        date: new Date().getFullYear().toString(),
-        excerpt: `Official biographical information and background for ${member.fullName}.`,
-        url: `https://www.congress.gov/member/${member.bioguideId}/${member.bioguideId}`,
-      });
-    }
-    
-    return sources;
-  };
-
-  const handleProfileReceipts = () => {
-    if (!member) return;
-    openReceipts({
-      heading: "Profile Sources",
-      subheading: `Sources for ${member.fullName}`,
-      sources: createProfileSources(),
-    });
-  };
-
-  const handleMoneyReceipts = () => {
-    openReceipts({
-      heading: "Campaign Finance Sources",
-      subheading: `Financial data for ${displayName}`,
-      sources: displayMoneyData.sources,
-    });
-  };
-
-  const handleIndustryBreakdownReceipts = () => {
-    openReceipts({
-      heading: "Industry Breakdown Sources",
-      subheading: `Industry contribution analysis for ${politician.name}`,
-      sources: politician.money.sources,
-    });
-  };
-
-  const handleVoteTopicReceipts = (topic: string) => {
-    const topicVotes = politician.votes.votes.filter((v) => v.topic === topic);
-    const topicSources = topicVotes.flatMap((v) => v.sources);
-    const uniqueSources = Array.from(
-      new Map(topicSources.map((s) => [s.title, s])).values()
-    );
-    openReceipts({
-      heading: "Voting Record Sources",
-      subheading: `${topic} votes for ${politician.name}`,
-      sources: uniqueSources,
-    });
-  };
-
-  const handleStatementReceipts = (statementId: string) => {
-    // Check real statements first, then mock statements
-    const statementsToUse = realStatements && realStatements.length > 0 
-      ? realStatements 
+  const displayStatements =
+    realStatements && realStatements.length > 0
+      ? realStatements
       : politician.statements.statements;
-    
-    const statement = statementsToUse.find((s) => s.id === statementId);
-    if (statement) {
-      openReceipts({
-        heading: "Statement Sources",
-        subheading: `Sources for: ${statement.title}`,
-        sources: statement.sources,
-      });
-    }
-  };
 
-  const handleVotesReceipts = () => {
-    // If we have real legislative activity data, use those sources
-    if (sponsoredBills || cosponsoredBills) {
-      const allSources: Array<{ title: string; publisher?: string; date?: string; url?: string; excerpt?: string }> = [];
-      
-      if (sponsoredBills) {
-        sponsoredBills.forEach((bill) => {
-          allSources.push(...bill.sources);
-        });
-      }
-      
-      if (cosponsoredBills) {
-        cosponsoredBills.forEach((bill) => {
-          allSources.push(...bill.sources);
-        });
-      }
-      
-      // Deduplicate sources by URL
-      const uniqueSources = Array.from(
-        new Map(allSources.filter(s => s.url).map((s) => [s.url, s])).values()
-      );
-      
-      // Add Congress.gov API endpoint sources
-      uniqueSources.push({
-        title: "Congress.gov API - Member Bills",
-        publisher: "Congress.gov",
-        excerpt: `API endpoint for bills sponsored and cosponsored by ${displayName}.`,
-        url: `https://api.congress.gov/v3/bill?sponsorBioguideId=${member?.bioguideId || ""}`,
-      });
-      
-      openReceipts({
-        heading: "Legislative Activity Sources",
-        subheading: `Sponsored and cosponsored bills for ${displayName}`,
-        sources: uniqueSources,
-      });
-    } else {
-      // Fall back to mock vote sources
-      openReceipts({
-        heading: "Voting Record Sources",
-        subheading: `Vote history for ${politician.name}`,
-        sources: uniqueVoteSources,
-      });
-    }
-  };
-
-  const handleRollCallVotesReceipts = () => {
-    if (memberVotes && memberVotes.length > 0) {
-      const allVoteSources = memberVotes.flatMap((vote) => vote.sources);
-      const uniqueSources = Array.from(
-        new Map(allVoteSources.filter(s => s.url).map((s) => [s.url, s])).values()
-      );
-      
-      openReceipts({
-        heading: "Roll-Call Vote Sources",
-        subheading: `Roll-call vote records for ${displayName}`,
-        sources: uniqueSources,
-      });
-    }
-  };
-
-  const handleStatementsReceipts = () => {
-    // Use real statements if available, otherwise use mock statements
-    const statementsToUse = realStatements && realStatements.length > 0 
-      ? realStatements 
-      : politician.statements.statements;
-    
-    const allStatementSources = statementsToUse.flatMap((s) => s.sources);
-    const uniqueStatementSources = Array.from(
-      new Map(allStatementSources.map((s) => [s.title || s.url, s])).values()
-    );
-    openReceipts({
-      heading: "Public Statements Sources",
-      subheading: `Statements and speeches by ${displayName}`,
-      sources: uniqueStatementSources,
-    });
-  };
-
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
-
-  // Group votes by topic, filter if topic lens is active
-  const votesByTopic = politician.votes.votes
-    .filter((vote) => !selectedTopic || vote.topic === selectedTopic)
-    .reduce(
-      (acc, vote) => {
-        if (!acc[vote.topic]) {
-          acc[vote.topic] = [];
-        }
-        acc[vote.topic].push(vote);
-        return acc;
-      },
-      {} as Record<string, typeof politician.votes.votes>
-    );
-
-  // Aggregate all vote sources for the votes module
-  const allVoteSources = politician.votes.votes.flatMap((vote) => vote.sources);
-  const uniqueVoteSources = Array.from(
-    new Map(allVoteSources.map((s) => [s.title, s])).values()
-  );
+  // ─────────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="relative">
-      {/* Desktop Sidebar Navigation */}
-      <aside className="hidden lg:block fixed left-0 top-16 h-[calc(100vh-4rem)] w-40 border-r border-[#C5C6CF] bg-[#F8F9FA]">
-        <nav className="sticky top-24 p-4 space-y-1">
-          <button
-            onClick={() => scrollToSection("overview")}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#75777F] hover:text-[#191C1D] hover:bg-[#EDEEEF] rounded-md transition-all duration-200"
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => scrollToSection("money")}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#75777F] hover:text-[#191C1D] hover:bg-[#EDEEEF] rounded-md transition-all duration-200"
-          >
-            Money
-          </button>
-          <button
-            onClick={() => scrollToSection("votes")}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#75777F] hover:text-[#191C1D] hover:bg-[#EDEEEF] rounded-md transition-all duration-200"
-          >
-            Votes
-          </button>
-          <button
-            onClick={() => scrollToSection("statements")}
-            className="block w-full text-left px-3 py-2 text-xs font-medium text-[#75777F] hover:text-[#191C1D] hover:bg-[#EDEEEF] rounded-md transition-all duration-200"
-          >
-            Statements
-          </button>
-        </nav>
-      </aside>
+      <SideNav activeSection={activeSection} />
 
-      {/* Main Content */}
-      <div className="lg:ml-40 space-y-12">
-        {/* Dev-only Data Debug Section */}
-        {process.env.NODE_ENV === "development" && (
-          <Card className="border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20">
-            <div className="space-y-2">
-              <h3 className="text-xs font-semibold text-blue-900 dark:text-blue-200">
-                Data Debug (Dev Only)
-              </h3>
-              <div className="grid grid-cols-2 gap-2 text-xs text-blue-800 dark:text-blue-300">
-                <div>
-                  <span className="font-medium">useMockData:</span> {useMockData ? "true" : "false"}
-                </div>
-                <div>
-                  <span className="font-medium">bioguideId:</span> {member?.bioguideId || "N/A"}
-                </div>
-                <div>
-                  <span className="font-medium">fecCandidateId:</span> {member?.fecCandidateId ? "✓" : "✗"}
-                </div>
-                <div>
-                  <span className="font-medium">lisId:</span> {member?.lisId ? "✓" : "✗"}
-                </div>
-                <div>
-                  <span className="font-medium">sponsoredBills:</span> {sponsoredBills?.length || 0}
-                </div>
-                <div>
-                  <span className="font-medium">cosponsoredBills:</span> {cosponsoredBills?.length || 0}
-                </div>
-                <div>
-                  <span className="font-medium">memberVotes:</span> {memberVotes?.length || 0}
-                </div>
-                <div>
-                  <span className="font-medium">realStatements:</span> {realStatements?.length || 0}
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
+      <div className="lg:ml-44">
 
-        {/* Topic Lens Banner */}
-        {selectedTopic && (
-          <div className="rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-[#191C1D]">
-                Viewing through topic: <span className="font-semibold">{selectedTopic}</span>
-              </p>
-            </div>
-          </div>
-        )}
+        {/* ── HERO ──────────────────────────────────────────────────────────── */}
+        <div style={{ background: "#041534" }}>
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 pt-8 pb-0">
 
-        {/* Header - Vintage Blocky Design */}
-        <div className="vintage-card p-6">
-          <div className="vintage-header">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <h1 className="vintage-title text-[#191C1D]">
-                  {displayName}
-                </h1>
-                <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
-                  <div className="vintage-stat-box">
-                    <div className="vintage-label">Role</div>
-                    <div className="vintage-value text-[#191C1D]">
-                      {member && !useMockData
-                        ? member.chamber === "House"
-                          ? "House"
-                          : "Senate"
-                        : displayRole?.toUpperCase().slice(0, 1) || "N/A"}
-                    </div>
-                  </div>
-                  <div className="vintage-stat-box">
-                    <div className="vintage-label">State</div>
-                    <div className="vintage-value text-[#191C1D]">
-                      {stateNameToCode(member?.state || displayState || "N/A")}
-                    </div>
-                  </div>
-                  {member?.district && (
-                    <div className="vintage-stat-box">
-                      <div className="vintage-label">District</div>
-                      <div className="vintage-value text-[#191C1D]">
-                        {member.district}
-                      </div>
-                    </div>
-                  )}
-                  <div className="vintage-stat-box">
-                    <div className="vintage-label">Party</div>
-                    <div className="vintage-value text-[#191C1D]">
-                      {member?.party || displayParty || "N/A"}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {member && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleProfileReceipts}
-                  className="border-2 border-[#191C1D] font-bold uppercase tracking-wider"
-                >
-                  Sources
-                </Button>
-              )}
-            </div>
-          </div>
-          
-          {displayCommittees.length > 0 && (
-            <div className="vintage-section">
-              <div className="vintage-subtitle mb-2">Committee Assignments</div>
-              <div className="flex flex-wrap gap-2">
-                {displayCommittees.map((committee) => (
-                  <span
-                    key={committee}
-                    className="border-2 border-[#191C1D] bg-[#EDEEEF] px-3 py-1 text-xs font-bold uppercase tracking-wider text-[#191C1D]"
-                  >
-                    {committee}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {useMockData && (
-            <div className="vintage-section border-orange-500">
-              <div className="border-2 border-orange-500 bg-orange-50 px-4 py-2">
-                <p className="text-sm font-bold uppercase text-orange-700">
-                  Mock Data Enabled
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Layer A: Key Takeaways - Vintage Design */}
-        <section id="overview">
-          <div className="vintage-card p-6">
-            <div className="vintage-header">
-              <h2 className="vintage-title text-[#191C1D]">
-                Key Takeaways
-              </h2>
-            </div>
-            <ul className="mb-6 space-y-2">
-              {keyTakeaways.map((takeaway, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-3 text-[#191C1D]"
-                >
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[#C5C6CF]"></span>
-                  <span className="flex-1">{takeaway}</span>
-                  {/* Add citation to first 2 takeaways only */}
-                  {index < 2 && (
-                    <span className="ml-2 flex-shrink-0">
-                      <InlineCitation
-                        compact
-                        data={{
-                          heading: "Key Takeaway Sources",
-                          subheading: `Sources for: ${takeaway}`,
-                          sources: [
-                            {
-                              title: "Congressional Research Service Analysis",
-                              publisher: "CRS",
-                              date: "2024-03-01",
-                              excerpt: `Supporting data and analysis for this key takeaway about ${politician.name}.`,
-                              url: "https://www.crs.gov/",
-                            },
-                            {
-                              title: "Official Records",
-                              publisher: "U.S. Congress",
-                              date: "2024-02-15",
-                              excerpt: `Official records and documentation supporting this claim.`,
-                              url: "https://www.congress.gov/",
-                            },
-                          ],
-                        }}
-                      />
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-            <div className="mb-6 flex items-start justify-between gap-3">
-              <p className="flex-1 text-sm leading-relaxed text-[#75777F]">
-                {politician.whyThisMatters}
-              </p>
-              <InlineCitation
-                compact
-                data={{
-                  heading: "Why This Matters Sources",
-                  subheading: `Context and sources for understanding ${politician.name}'s significance`,
-                  sources: [
-                    {
-                      title: "Civic Engagement Research",
-                      publisher: "Nonpartisan Research Institute",
-                      date: "2024-02-20",
-                      excerpt: `Research on the importance of transparency in political funding and voting records for democratic accountability.`,
-                      url: "https://example.com/research",
-                    },
-                    {
-                      title: "Transparency Best Practices",
-                      publisher: "Good Governance Foundation",
-                      date: "2024-01-10",
-                      excerpt: `Best practices for understanding how campaign finance and voting records inform policy decisions.`,
-                      url: "https://example.com/best-practices",
-                    },
-                  ],
-                }}
-              />
-            </div>
-            <div className="vintage-section">
-              <div className="vintage-subtitle mb-3">Key Metrics</div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <div className="vintage-stat-box">
-                  <div className="vintage-label">Top Donor</div>
-                  <div className="vintage-value text-[#191C1D]">
-                    {displayTopDonorCategory}
-                  </div>
-                </div>
-                <div className="vintage-stat-box">
-                  <div className="vintage-label">Votes</div>
-                  <div className="vintage-value text-[#191C1D]">
-                    {displayVotesThisYear}
-                  </div>
-                </div>
-                <div className="vintage-stat-box">
-                  <div className="vintage-label">Bills</div>
-                  <div className="vintage-value text-[#191C1D]">
-                    {displayBillsSponsored}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Layer B: Money Module - Vintage Design */}
-        <section id="money">
-          <div className="vintage-card p-6">
-            <div className="vintage-header">
-              <div className="flex items-start justify-between">
-                <h2 className="vintage-title text-[#191C1D]">
-                  Campaign Finance
-                </h2>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleMoneyReceipts}
-                  className="border-2 border-[#191C1D] font-bold uppercase tracking-wider"
-                >
-                  Sources
-                </Button>
-              </div>
-            </div>
-            
-            {/* Health Status Banner for OpenFEC */}
-            {healthStatus && (healthStatus.openfec === "Down" || healthStatus.openfec === "Degraded") && (
-              <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
-                <p className="text-sm text-orange-700">
-                  <span className="font-semibold">OpenFEC currently unavailable.</span> Campaign finance data may not be up to date.
-                </p>
-              </div>
-            )}
-            
-            {/* Real Money Totals - Vintage Stat Boxes */}
-            {moneyData && (
-              <div className="vintage-section">
-                <div className="vintage-subtitle mb-3">Financial Totals</div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  <div className="vintage-stat-box">
-                    <div className="vintage-label">Raised</div>
-                    <div className="vintage-value text-[#191C1D]">
-                      {moneyData.totals.raised >= 1000000
-                        ? `$${(moneyData.totals.raised / 1000000).toFixed(2)}M`
-                        : moneyData.totals.raised >= 1000
-                        ? `$${(moneyData.totals.raised / 1000).toFixed(0)}K`
-                        : `$${moneyData.totals.raised.toLocaleString()}`}
-                    </div>
-                  </div>
-                  <div className="vintage-stat-box">
-                    <div className="vintage-label">Spent</div>
-                    <div className="vintage-value text-[#191C1D]">
-                      {moneyData.totals.spent >= 1000000
-                        ? `$${(moneyData.totals.spent / 1000000).toFixed(2)}M`
-                        : moneyData.totals.spent >= 1000
-                        ? `$${(moneyData.totals.spent / 1000).toFixed(0)}K`
-                        : `$${moneyData.totals.spent.toLocaleString()}`}
-                    </div>
-                  </div>
-                  <div className="vintage-stat-box">
-                    <div className="vintage-label">Cash on Hand</div>
-                    <div className="vintage-value text-[#191C1D]">
-                      {moneyData.totals.cashOnHand >= 1000000
-                        ? `$${(moneyData.totals.cashOnHand / 1000000).toFixed(2)}M`
-                        : moneyData.totals.cashOnHand >= 1000
-                        ? `$${(moneyData.totals.cashOnHand / 1000).toFixed(0)}K`
-                        : `$${moneyData.totals.cashOnHand.toLocaleString()}`}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Loading state */}
-            {moneyLoading && (
-              <div className="mb-4 rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
-                <p className="text-sm text-[#75777F]">Loading campaign finance data…</p>
-              </div>
-            )}
-
-            {/* Error state */}
-            {moneyError && !moneyLoading && !moneyData && (
-              <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
-                <p className="text-sm text-orange-700">
-                  <span className="font-semibold">Campaign finance data unavailable.</span> The FEC API may be rate-limited. Try refreshing in a moment.
-                </p>
-              </div>
-            )}
-
-            {/* Finance not available messages — use fecCandidateId prop (includes mapping overrides) */}
-            {member && !fecCandidateId && !moneyData && !moneyLoading && !moneyError && (
-              <div className="mb-6 rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
-                <p className="text-sm text-[#75777F]">
-                  Finance data not linked yet. FEC candidate ID mapping needed.
-                </p>
-              </div>
-            )}
-            {member && fecCandidateId && !moneyData && !moneyLoading && !moneyError && (
-              <div className="mb-6 rounded border border-[#C5C6CF] bg-[#F8F9FA] px-4 py-3">
-                <p className="text-sm text-[#75777F]">
-                  FEC totals not available yet. Campaign finance data may still be processing or the candidate may not have filed reports for the current cycle.
-                </p>
-              </div>
-            )}
-            
-            {/* Dev-only helper: Link FEC Candidate ID */}
-            {process.env.NODE_ENV === "development" && member && !member.fecCandidateId && (
-              <FecCandidateSearchHelper member={member} />
-            )}
-            
-            <p className="mb-6 text-sm leading-relaxed text-[#75777F]">
-              {moneyData 
-                ? "Campaign finance data from the Federal Election Commission."
-                : politician.money.moduleSummary
-              }
+            {/* Breadcrumb */}
+            <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-blue-200/50">
+              {displayChamber} · {displayState}
+              {displayDistrict ? ` · District ${displayDistrict}` : ""}
             </p>
 
-            {/* Layer C: Detailed Content in Disclosure - Vintage Styled */}
-            <div className="vintage-section">
-              <div className="border-2 border-[#191C1D]">
-              <Disclosure title="Top Contributors" defaultOpen={true}>
-                {moneyData && moneyData.topContributors.length > 0 ? (
-                  <ul className="space-y-2">
-                    {moneyData.topContributors.map((contributor, index) => (
-                      <li
-                        key={index}
-                        className="flex items-center justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0"
-                      >
-                        <span className="text-sm text-[#191C1D]">
-                          {contributor.name}
-                        </span>
-                        <span className="text-sm font-medium text-[#191C1D]">
-                          {contributor.amount}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : moneyData ? (
-                  <div className="py-4 text-center text-sm text-[#75777F]">
-                    <p>Contributor data not available through the OpenFEC API.</p>
-                    <p className="mt-1 text-xs">The FEC releases this data, but detailed contributor aggregations may not be accessible via API endpoints yet.</p>
-                  </div>
-                ) : (
-                  <ul className="space-y-2">
-                    {displayMoneyData.topContributors.map((contributor, index) => (
-                      <li
-                        key={index}
-                        className="flex items-center justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0"
-                      >
-                        <span className="text-sm text-[#191C1D]">
-                          {contributor.name}
-                        </span>
-                        <span className="text-sm font-medium text-[#191C1D]">
-                          {contributor.amount}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Disclosure>
+            {/* Identity row */}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-4">
+                {/* Initials avatar */}
+                <div
+                  className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold text-white ring-2 ring-white/20"
+                  style={{ background: partyColor(displayParty) }}
+                >
+                  {displayName.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("")}
+                </div>
 
-              <Disclosure title="Industry Breakdown">
-                {moneyData && moneyData.industryBreakdown.length > 0 ? (
-                  <div className="space-y-3">
-                    {moneyData.industryBreakdown.map((industry, index) => (
-                      <div key={index}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm text-[#75777F]">
-                            {industry.industry}
-                          </span>
-                          <span className="text-sm font-medium text-[#191C1D]">
-                            {industry.percentage}%
-                          </span>
-                        </div>
-                        <div className="h-2 w-full overflow-hidden rounded-full bg-[#EDEEEF]">
-                          <div
-                            className="h-full bg-[#041534] transition-all duration-300"
-                            style={{ width: `${industry.percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                    <div className="pt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleMoneyReceipts}
-                      >
-                        View receipts
-                      </Button>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                    {displayName}
+                  </h1>
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span
+                      className="rounded-full px-3 py-0.5 text-xs font-bold text-white"
+                      style={{ background: partyColor(displayParty) }}
+                    >
+                      {partyLabel(displayParty)}
+                    </span>
+                    <span className="text-sm text-blue-100/70">
+                      {displayChamber} · {displayState}
+                      {displayDistrict ? ` D-${displayDistrict}` : ""}
+                    </span>
+                    {useMockData && (
+                      <span className="rounded-full bg-amber-400/20 px-2 py-0.5 text-xs font-medium text-amber-300">
+                        Sample Data
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+                <button
+                  onClick={() => isCompared ? removePolitician(politician.id) : addPolitician(politician)}
+                  className={`rounded px-3 py-1.5 text-xs font-semibold transition-all ${
+                    isCompared
+                      ? "bg-[#A63744] text-white"
+                      : "border border-white/30 text-white/80 hover:border-white hover:text-white"
+                  }`}
+                >
+                  {isCompared ? "✓ Comparing" : "Compare"}
+                </button>
+                <button
+                  onClick={() => member && toggleSavePolitician(member.bioguideId)}
+                  className={`rounded px-3 py-1.5 text-xs font-semibold transition-all ${
+                    isSaved
+                      ? "bg-white/20 text-white"
+                      : "border border-white/30 text-white/80 hover:border-white hover:text-white"
+                  }`}
+                >
+                  {isSaved ? "✓ Following" : "Follow"}
+                </button>
+                {member && (
+                  <button
+                    onClick={() =>
+                      openReceipts({
+                        heading:    "Profile Sources",
+                        subheading: displayName,
+                        sources: [
+                          {
+                            title:     "Official Profile",
+                            publisher: "Congress.gov",
+                            url:       `https://www.congress.gov/member/${member.bioguideId}`,
+                            excerpt:   `Official profile for ${displayName}.`,
+                          },
+                        ],
+                      })
+                    }
+                    className="rounded px-3 py-1.5 text-xs font-semibold border border-white/20 text-white/60 hover:border-white/50 hover:text-white/90 transition-all"
+                  >
+                    Sources
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Stats strip */}
+            <div className="mt-8 grid grid-cols-3 divide-x divide-white/10 border-t border-white/10">
+              <div className="py-4 pr-6">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-200/40">
+                  Bills Sponsored
+                </p>
+                <p className="mt-1 text-2xl font-bold text-white">{billsSponsored}</p>
+              </div>
+              <div className="px-6 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-200/40">
+                  Votes Recorded
+                </p>
+                <p className="mt-1 text-2xl font-bold text-white">{votesCount}</p>
+              </div>
+              <div className="pl-6 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-200/40">
+                  Top Donor Sector
+                </p>
+                <p className="mt-1 text-base font-bold text-white leading-tight">{topDonor}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── PAGE CONTENT ─────────────────────────────────────────────────── */}
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 space-y-10">
+
+          {/* ── FOLLOW THE MONEY ──────────────────────────────────────────── */}
+          <section id="follow-money" className="scroll-mt-20">
+            <SectionLabel label="Investigation" accent />
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">Follow the Money</h2>
+            <p className="text-sm text-gray-500 mb-5">
+              AI-generated analysis connecting campaign donors to voting patterns
+            </p>
+
+            {insightsLoading && <LoadingCard text="Analyzing campaign finance and voting patterns…" />}
+
+            {!insightsLoading && insights && (
+              <div className="space-y-4">
+                {/* Headline */}
+                <div className="rounded-xl p-5 sm:p-6" style={{ background: "#041534" }}>
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl shrink-0 mt-0.5">🔍</span>
+                    <div>
+                      <p className="text-lg font-bold text-white leading-snug">
+                        {insights.headline}
+                      </p>
+                      <p className="mt-2 text-sm leading-relaxed text-blue-100/80">
+                        {insights.summary}
+                      </p>
                     </div>
                   </div>
-                ) : moneyData ? (
-                  <div className="py-4 text-center text-sm text-[#75777F]">
-                    <p>Industry breakdown data not available through the OpenFEC API.</p>
-                    <p className="mt-1 text-xs">The FEC releases this data, but detailed industry aggregations may not be accessible via API endpoints yet.</p>
+                </div>
+
+                {/* Connections */}
+                {insights.connections.length > 0 && (
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {insights.connections.map((conn, i) => (
+                      <div key={i} className={`rounded-lg border p-4 ${alignmentBg(conn.alignment)}`}>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <span className="text-sm font-semibold text-gray-900">{conn.industry}</span>
+                          <span
+                            className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                            style={{ background: alignmentColor(conn.alignment) }}
+                          >
+                            {conn.alignment}
+                          </span>
+                        </div>
+                        <p className="text-xs font-medium text-gray-500 mb-1.5">{conn.amount}</p>
+                        <p className="text-xs leading-relaxed text-gray-600">{conn.votingPattern}</p>
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {displayMoneyData.industryBreakdown.length > 0 ? (
-                      <>
-                        {displayMoneyData.industryBreakdown.map((industry, index) => (
-                          <div key={index}>
+                )}
+
+                {/* Notable facts */}
+                {insights.notable.length > 0 && (
+                  <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-3">
+                      Notable
+                    </p>
+                    <ul className="space-y-2.5">
+                      {insights.notable.map((fact, i) => (
+                        <li key={i} className="flex items-start gap-2.5 text-sm text-gray-700">
+                          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#A63744]" />
+                          {fact}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-gray-400">
+                  AI-generated by Claude · Cross-references OpenFEC + Congress.gov data
+                </p>
+              </div>
+            )}
+
+            {!insightsLoading && !insights && (
+              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-8 text-center">
+                <p className="text-sm text-gray-400">
+                  {!member
+                    ? "AI insights are available for real Congress members."
+                    : moneyLoading
+                    ? "Loading campaign finance data to generate insights…"
+                    : "Generating insights…"}
+                </p>
+              </div>
+            )}
+          </section>
+
+          {/* ── CAMPAIGN FINANCE ─────────────────────────────────────────── */}
+          <section id="finance" className="scroll-mt-20">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <SectionLabel label="Transparency" />
+                <h2 className="text-2xl font-bold text-gray-900">Where the Money Comes From</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Federal Election Commission campaign finance data</p>
+              </div>
+              {moneyData && (
+                <button
+                  onClick={() =>
+                    openReceipts({
+                      heading:    "Campaign Finance Sources",
+                      subheading: displayName,
+                      sources:    moneyData.sources,
+                    })
+                  }
+                  className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-700 underline underline-offset-2 mt-1"
+                >
+                  Sources
+                </button>
+              )}
+            </div>
+
+            {moneyLoading && <LoadingCard text="Loading campaign finance data…" />}
+            {moneyError && !moneyLoading && !moneyData && (
+              <AlertCard text="Campaign finance data unavailable — FEC API may be rate-limited. Try refreshing." />
+            )}
+            {!fecCandidateId && !moneyData && !moneyLoading && !moneyError && (
+              <AlertCard text="FEC candidate ID not yet linked for this member." variant="info" />
+            )}
+
+            {moneyData && (
+              <div className="space-y-4">
+                {/* Totals */}
+                <div className="grid grid-cols-3 rounded-xl border border-gray-100 bg-white shadow-sm divide-x divide-gray-100 overflow-hidden">
+                  {[
+                    { label: "Total Raised",  value: formatMoney(moneyData.totals.raised) },
+                    { label: "Total Spent",    value: formatMoney(moneyData.totals.spent) },
+                    { label: "Cash on Hand",   value: formatMoney(moneyData.totals.cashOnHand) },
+                  ].map((stat) => (
+                    <div key={stat.label} className="p-4 sm:p-5">
+                      <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                        {stat.label}
+                      </p>
+                      <p className="mt-1.5 text-2xl font-bold text-gray-900 sm:text-3xl">
+                        {stat.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {/* Top Contributors */}
+                  <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+                      Top Contributors
+                    </p>
+                    {moneyData.topContributors.length > 0 ? (
+                      <ul className="space-y-2.5">
+                        {moneyData.topContributors.slice(0, 8).map((c, i) => (
+                          <li key={i} className="flex items-center justify-between">
+                            <span className="flex items-center gap-2 text-sm text-gray-700 min-w-0">
+                              <span className="shrink-0 w-5 text-center text-xs font-bold text-gray-300">
+                                {i + 1}
+                              </span>
+                              <span className="truncate">{c.name}</span>
+                            </span>
+                            <span className="ml-3 shrink-0 text-sm font-bold text-gray-900">
+                              {c.amount}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-gray-400">
+                        Detailed contributor data not available via FEC API.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Industry Breakdown */}
+                  <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+                      Industry Breakdown
+                    </p>
+                    {moneyData.industryBreakdown.length > 0 ? (
+                      <div className="space-y-3">
+                        {moneyData.industryBreakdown.slice(0, 6).map((ind, i) => (
+                          <div key={i}>
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm text-[#75777F]">
-                                {industry.industry}
-                              </span>
-                              <span className="text-sm font-medium text-[#191C1D]">
-                                {industry.percentage}%
-                              </span>
+                              <span className="text-sm text-gray-700">{ind.industry}</span>
+                              <span className="text-sm font-bold text-gray-900">{ind.percentage}%</span>
                             </div>
-                            <div className="h-2 w-full overflow-hidden rounded-full bg-[#EDEEEF]">
+                            <div className="h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
                               <div
-                                className="h-full bg-[#75777F]"
-                                style={{ width: `${industry.percentage}%` }}
+                                className="h-full rounded-full transition-all duration-700"
+                                style={{
+                                  width:      `${ind.percentage}%`,
+                                  background: i === 0 ? "#A63744" : "#041534",
+                                  opacity:    Math.max(0.3, 1 - i * 0.14),
+                                }}
                               />
                             </div>
                           </div>
                         ))}
-                        <div className="pt-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleIndustryBreakdownReceipts}
-                          >
-                            View receipts
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="py-4 text-center text-sm text-[#75777F]">
-                        Industry breakdown data not available.
                       </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">
+                        Industry breakdown not available via FEC API.
+                      </p>
                     )}
                   </div>
-                )}
-              </Disclosure>
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
+            )}
 
-        {/* Layer B: Legislative Activity Module (Votes/Legislative Activity) - Vintage Design */}
-        <section id="votes">
-          <div className="vintage-card p-6">
-            <div className="vintage-header">
-              <div className="flex items-start justify-between">
-                <h2 className="vintage-title text-[#191C1D]">
-                  {sponsoredBills || cosponsoredBills ? "Legislative Activity" : "Voting Record"}
-                </h2>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleVotesReceipts}
-                  className="border-2 border-[#191C1D] font-bold uppercase tracking-wider"
+            {/* Mock fallback when no real data */}
+            {!moneyData && !moneyLoading && !moneyError && fecCandidateId && (
+              <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+                <p className="text-sm text-gray-500 mb-4">{politician.money.moduleSummary}</p>
+                <ul className="space-y-2">
+                  {politician.money.topContributors.slice(0, 5).map((c, i) => (
+                    <li key={i} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700">{c.name}</span>
+                      <span className="font-bold text-gray-900">{c.amount}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          {/* ── VOTING RECORD ─────────────────────────────────────────────── */}
+          <section id="votes" className="scroll-mt-20">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <SectionLabel label="Accountability" />
+                <h2 className="text-2xl font-bold text-gray-900">Voting Record</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Roll-call votes in the 119th Congress</p>
+              </div>
+              {memberVotes.length > 0 && (
+                <button
+                  onClick={() =>
+                    openReceipts({
+                      heading:    "Vote Record Sources",
+                      subheading: displayName,
+                      sources:    memberVotes.flatMap((v) => v.sources),
+                    })
+                  }
+                  className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-700 underline underline-offset-2 mt-1"
                 >
                   Sources
-                </Button>
-              </div>
-            </div>
-            
-            {/* Health Status Banner for Congress.gov */}
-            {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") && (
-              <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
-                <p className="text-sm text-orange-700">
-                  <span className="font-semibold">Congress.gov currently unavailable.</span> Legislative activity data may not be up to date.
-                </p>
-              </div>
-            )}
-            
-            <p className="mb-6 text-sm leading-relaxed text-[#75777F]">
-              {sponsoredBills || cosponsoredBills
-                ? `Bills sponsored and cosponsored by ${displayName} in the 119th Congress.`
-                : politician.votes.moduleSummary
-              }
-            </p>
-
-            {/* Real Legislative Activity (Sponsored/Cosponsored Bills) */}
-            {member && !useMockData ? (
-              (sponsoredBills && sponsoredBills.length > 0) || (cosponsoredBills && cosponsoredBills.length > 0) ? (
-                <div className="space-y-0 rounded border border-[#C5C6CF]">
-                  {/* Sponsored Bills */}
-                  {sponsoredBills && sponsoredBills.length > 0 && (
-                    <Disclosure title="Sponsored Bills" defaultOpen={true}>
-                      <div className="space-y-2">
-                        {sponsoredBills.map((bill) => {
-                          const isHighlighted = selectedTopic && bill.topic === selectedTopic;
-                          return (
-                            <div
-                              key={bill.id}
-                              className={`flex items-start justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0 ${
-                                isHighlighted ? "border-l-4 border-l-[#041534] bg-[#F8F9FA] -ml-2 pl-2 rounded" : ""
-                              }`}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <Link
-                                  href={`/bill/${bill.id}`}
-                                  className="text-sm font-medium text-[#041534] hover:text-[#1B2A4A]"
-                                >
-                                  {bill.title}
-                                </Link>
-                                <p className="mt-0.5 text-xs text-[#75777F]">
-                                  {bill.type} {bill.number} • {bill.latestAction || "No recent action"}
-                                  {bill.updateDate && ` • ${bill.updateDate}`}
-                                  {isHighlighted && (
-                                    <>
-                                      {" • "}
-                                      <span className="font-medium text-[#191C1D]">
-                                        {selectedTopic}
-                                      </span>
-                                    </>
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </Disclosure>
-                  )}
-
-                  {/* Cosponsored Bills */}
-                  {cosponsoredBills && cosponsoredBills.length > 0 && (
-                    <Disclosure title="Cosponsored Bills">
-                      <div className="space-y-2">
-                        {cosponsoredBills.map((bill) => {
-                          const isHighlighted = selectedTopic && bill.topic === selectedTopic;
-                          return (
-                            <div
-                              key={bill.id}
-                              className={`flex items-start justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0 ${
-                                isHighlighted ? "border-l-4 border-l-[#041534] bg-[#F8F9FA] -ml-2 pl-2 rounded" : ""
-                              }`}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <Link
-                                  href={`/bill/${bill.id}`}
-                                  className="text-sm font-medium text-[#041534] hover:text-[#1B2A4A]"
-                                >
-                                  {bill.title}
-                                </Link>
-                                <p className="mt-0.5 text-xs text-[#75777F]">
-                                  {bill.type} {bill.number} • {bill.latestAction || "No recent action"}
-                                  {bill.updateDate && ` • ${bill.updateDate}`}
-                                  {isHighlighted && (
-                                    <>
-                                      {" • "}
-                                      <span className="font-medium text-[#191C1D]">
-                                        {selectedTopic}
-                                      </span>
-                                    </>
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </Disclosure>
-                  )}
-                </div>
-              ) : (
-                <div className="py-8 text-center">
-                        {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") ? (
-                          <p className="text-sm leading-relaxed text-[#75777F]">
-                            <span className="font-semibold">Congress.gov data temporarily unavailable.</span> Legislative activity data may not be up to date.
-                          </p>
-                        ) : (
-                          <div className="space-y-2">
-                            <p className="text-sm leading-relaxed text-[#75777F]">
-                              No legislative activity found for this member in the current dataset.
-                            </p>
-                            <p className="text-xs text-[#75777F]">
-                              {sponsoredBills === null && cosponsoredBills === null
-                                ? "Data fetch may have failed. Check server logs for details."
-                                : "The member may not have sponsored or cosponsored bills in the 119th Congress, or the data may still be processing."}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )
-            ) : (
-              // Mock votes fallback for non-real members
-              <div className="space-y-0 rounded border border-[#C5C6CF]">
-                {Object.entries(votesByTopic).map(([topic, votes]) => (
-                  <Disclosure key={topic} title={topic}>
-                    <div className="space-y-2">
-                      {votes.map((vote, index) => (
-                        <div
-                          key={index}
-                          className="flex items-start justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0"
-                        >
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-[#191C1D]">
-                              {vote.description}
-                            </p>
-                            <p className="mt-0.5 text-xs text-[#75777F]">
-                              {vote.date}
-                            </p>
-                          </div>
-                          <span
-                            className={`ml-3 rounded-full px-2 py-0.5 text-xs font-medium ${
-                              vote.position === "Yes"
-                                ? "bg-green-100 text-green-800"
-                                : vote.position === "No"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-[#EDEEEF] text-[#191C1D]"
-                            }`}
-                          >
-                            {vote.position}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="pt-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleVoteTopicReceipts(topic)}
-                        >
-                          View receipts
-                        </Button>
-                      </div>
-                    </div>
-                  </Disclosure>
-                ))}
-              </div>
-            )}
-
-            {/* Mock Votes (fallback when no real legislative activity - only for mock data) */}
-            {(!member || useMockData) && !sponsoredBills && !cosponsoredBills && (
-              <div className="space-y-0 rounded border border-[#C5C6CF]">
-                {Object.entries(votesByTopic).map(([topic, votes]) => (
-                  <Disclosure key={topic} title={topic}>
-                    <div className="space-y-2">
-                      {votes.map((vote, index) => (
-                        <div
-                          key={index}
-                          className="flex items-start justify-between border-b border-[#EDEEEF] pb-2 last:border-b-0"
-                        >
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-[#191C1D]">
-                              {vote.description}
-                            </p>
-                            <p className="mt-0.5 text-xs text-[#75777F]">
-                              {vote.date}
-                            </p>
-                          </div>
-                          <span
-                            className={`ml-3 rounded-full px-2 py-0.5 text-xs font-medium ${
-                              vote.position === "Yes"
-                                ? "bg-green-100 text-green-800"
-                                : vote.position === "No"
-                                ? "bg-red-100 text-red-800"
-                                : "bg-[#EDEEEF] text-[#191C1D]"
-                            }`}
-                          >
-                            {vote.position}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="pt-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleVoteTopicReceipts(topic)}
-                        >
-                          View receipts
-                        </Button>
-                      </div>
-                    </div>
-                  </Disclosure>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Roll-Call Votes Module (for real members) - Vintage Design */}
-        {member && !useMockData && (
-          <section id="roll-call-votes">
-            <div className="vintage-card p-6">
-              <div className="vintage-header">
-                <div className="flex items-start justify-between">
-                  <h2 className="vintage-title text-[#191C1D]">
-                    Roll-Call Votes
-                  </h2>
-                  {memberVotes && memberVotes.length > 0 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={handleRollCallVotesReceipts}
-                      className="border-2 border-[#191C1D] font-bold uppercase tracking-wider"
-                    >
-                      Sources
-                    </Button>
-                  )}
-                </div>
-              </div>
-              
-              {/* Health Status Banner for Congress.gov */}
-              {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") && (
-                <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
-                  <p className="text-sm text-orange-700">
-                    <span className="font-semibold">Congress.gov currently unavailable.</span> Roll-call vote data may not be up to date.
-                  </p>
-                </div>
-              )}
-              
-              <p className="mb-6 text-sm leading-relaxed text-[#75777F]">
-                Recent roll-call votes cast by {displayName} in the 119th Congress.
-              </p>
-
-              {memberVotes && memberVotes.length > 0 ? (
-                <div className="space-y-0 rounded border border-[#C5C6CF]">
-                  {memberVotes.slice(0, 10).map((vote) => {
-                    const isHighlighted = selectedTopic && vote.topic === selectedTopic;
-                    return (
-                      <div
-                        key={vote.id}
-                        className={`flex items-start justify-between border-b border-[#EDEEEF] pb-3 pt-3 first:pt-0 last:border-b-0 ${
-                          isHighlighted
-                            ? "border-l-4 border-l-[#041534] bg-[#F8F9FA] -ml-2 pl-2 rounded"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#191C1D]">
-                            {vote.description}
-                          </p>
-                          <div className="mt-1 flex items-center gap-2 text-xs text-[#75777F]">
-                            <span>{vote.date}</span>
-                            {isHighlighted && (
-                              <>
-                                <span>•</span>
-                                <span className="font-medium text-[#191C1D]">
-                                  {selectedTopic}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          {vote.sources && vote.sources.length > 0 && (
-                            <div className="mt-2">
-                              <InlineCitation
-                                compact
-                                data={{
-                                  heading: "Vote Sources",
-                                  subheading: vote.description,
-                                  sources: vote.sources,
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <span
-                          className={`ml-3 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                            vote.position === "Yes"
-                              ? "bg-green-100 text-green-800"
-                              : vote.position === "No"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-[#EDEEEF] text-[#191C1D]"
-                          }`}
-                        >
-                          {vote.position}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") ? (
-                <div className="py-8 text-center">
-                  <p className="text-sm leading-relaxed text-[#75777F]">
-                    <span className="font-semibold">Congress.gov data temporarily unavailable.</span> Roll-call vote data may not be up to date.
-                  </p>
-                </div>
-              ) : (
-                <div className="py-8 text-center">
-                  <p className="text-sm leading-relaxed text-[#75777F]">
-                    No roll-call votes found for this member in the current dataset.
-                  </p>
-                </div>
+                </button>
               )}
             </div>
-          </section>
-        )}
 
-        {/* Layer B: Statements Module - Vintage Design */}
-        <section id="statements">
-          <div className="vintage-card p-6">
-            <div className="vintage-header">
-              <div className="flex items-start justify-between">
-                <h2 className="vintage-title text-[#191C1D]">
-                  Public Statements
-                </h2>
-              {(realStatements && realStatements.length > 0) || politician.statements.statements.length > 0 ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleStatementsReceipts}
-                >
-                  View receipts
-                </Button>
-              ) : null}
-              </div>
-            </div>
-            
-            {/* Health Status Banner for Congress.gov */}
-            {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") && (
-              <div className="mb-4 rounded border border-orange-200 bg-orange-50 px-4 py-3">
-                <p className="text-sm text-orange-700">
-                  <span className="font-semibold">Congress.gov currently unavailable.</span> Statement data may not be up to date.
-                </p>
-              </div>
-            )}
-            <p className="mb-6 text-sm leading-relaxed text-[#75777F]">
-              {politician.statements.moduleSummary}
-            </p>
-
-            {/* Layer C: Detailed Content in Disclosure */}
-            {statementsLoading ? (
-              <div className="py-8 text-center text-sm text-[#75777F]">
-                Loading statements...
-              </div>
-            ) : realStatements && realStatements.length > 0 ? (
-              // Show real statements if available
-              <div className="space-y-0 rounded border border-[#C5C6CF]">
-                {realStatements.map((statement) => {
-                  const isHighlighted = selectedTopic && statement.topic === selectedTopic;
-                  return (
-                    <div
-                      key={statement.id}
-                      className={isHighlighted ? "border-l-4 border-l-[#041534]" : ""}
-                    >
-                      <Disclosure title={statement.title}>
-                        <div className={`space-y-3 ${isHighlighted ? "bg-[#F8F9FA] -m-2 p-2 rounded" : ""}`}>
-                          <div className="flex items-center gap-2 text-xs text-[#75777F]">
-                            <span>{statement.date}</span>
-                            {statement.sourceType && (
-                              <>
-                                <span>•</span>
-                                <span>{statement.sourceType}</span>
-                              </>
-                            )}
-                            {isHighlighted && (
-                              <>
-                                <span>•</span>
-                                <span className="font-medium text-[#191C1D]">
-                                  {selectedTopic}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          <p className="text-sm leading-relaxed text-[#191C1D]">
-                            {statement.text}
-                          </p>
-                          {statement.sources && statement.sources.length > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleStatementReceipts(statement.id)}
-                            >
-                              View receipts
-                            </Button>
-                          )}
-                        </div>
-                      </Disclosure>
+            {memberVotes.length > 0 ? (
+              <div className="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+                {/* Mobile: card list */}
+                <div className="sm:hidden divide-y divide-gray-50">
+                  {memberVotes.slice(0, 10).map((vote, i) => (
+                    <div key={i} className="px-4 py-3 flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-800 line-clamp-2">{vote.description}</p>
+                        <p className="mt-0.5 text-xs text-gray-400">{vote.date}</p>
+                      </div>
+                      <VoteBadge position={vote.position} />
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+                {/* Desktop: table */}
+                <table className="hidden sm:table w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                        Bill / Description
+                      </th>
+                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                        Topic
+                      </th>
+                      <th className="px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                        Date
+                      </th>
+                      <th className="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                        Vote
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {memberVotes.slice(0, 10).map((vote, i) => (
+                      <tr key={i} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3 text-gray-800 max-w-xs">
+                          <span className="line-clamp-2">{vote.description}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {vote.topic && (
+                            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                              {vote.topic}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{vote.date}</td>
+                        <td className="px-4 py-3 text-right">
+                          <VoteBadge position={vote.position} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : member && !useMockData ? (
-              // Show calm message for real members without statements
-              <div className="py-8 text-center">
-                <p className="text-sm leading-relaxed text-[#75777F]">
-                  {healthStatus && (healthStatus.congress === "Down" || healthStatus.congress === "Degraded") ? (
-                    <>
-                      <span className="font-semibold">Congress.gov data temporarily unavailable.</span> Official statements feed may not be up to date.
-                    </>
-                  ) : (
-                    "Official statements feed coming soon — we'll prioritize primary sources."
-                  )}
-                </p>
-              </div>
+              <EmptyCard text="No roll-call votes found in the current dataset for this member." />
             ) : (
-              // Fall back to mock statements for mock data
-              <div className="space-y-0 rounded border border-[#C5C6CF]">
-                {politician.statements.statements.map((statement) => {
-                  const isHighlighted = selectedTopic && statement.topic === selectedTopic;
-                  return (
-                    <div
-                      key={statement.id}
-                      className={isHighlighted ? "border-l-4 border-l-[#041534]" : ""}
-                    >
-                      <Disclosure title={statement.title}>
-                        <div className={`space-y-3 ${isHighlighted ? "bg-[#F8F9FA] -m-2 p-2 rounded" : ""}`}>
-                          <div className="flex items-center gap-2 text-xs text-[#75777F]">
-                            <span>{statement.date}</span>
-                            {statement.sourceType && (
-                              <>
-                                <span>•</span>
-                                <span>{statement.sourceType}</span>
-                              </>
-                            )}
-                            {isHighlighted && (
-                              <>
-                                <span>•</span>
-                                <span className="font-medium text-[#191C1D]">
-                                  {selectedTopic}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          <p className="text-sm leading-relaxed text-[#191C1D]">
-                            {statement.text}
-                          </p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleStatementReceipts(statement.id)}
-                          >
-                            View receipts
-                          </Button>
-                        </div>
-                      </Disclosure>
+              <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+                <p className="text-sm text-gray-500 mb-4">{politician.votes.moduleSummary}</p>
+                <div className="divide-y divide-gray-50">
+                  {politician.votes.votes.slice(0, 6).map((vote, i) => (
+                    <div key={i} className="flex items-center justify-between py-2.5">
+                      <span className="text-sm text-gray-700 flex-1 mr-4 line-clamp-1">
+                        {vote.description}
+                      </span>
+                      <VoteBadge position={vote.position} />
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             )}
-          </div>
-        </section>
-      </div>
-    </div>
-  );
-}
+          </section>
 
-/**
- * Dev-only helper component for searching and linking FEC candidate IDs
- */
-function FecCandidateSearchHelper({ member }: { member: Member }) {
-  const [searchResults, setSearchResults] = useState<CandidateSearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  
-  // Pre-fill search values from member data
-  const office = member.chamber === "House" ? "H" : "S"; // H = House, S = Senate
-  
-  // Convert state to code if needed (e.g., "California" -> "CA")
-  // Note: member.state should already be a code, but convert just in case
-  const stateCode = member.state.length === 2 
-    ? member.state.toUpperCase() 
-    : member.state; // If not 2 chars, might already be a code or full name - API will handle it
-  
-  const handleSearch = async () => {
-    setIsSearching(true);
-    setSearchResults([]);
-    
-    try {
-      const params = new URLSearchParams({
-        q: member.fullName,
-        state: stateCode,
-        office: office,
-      });
-      
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[FEC Search] Searching for:`, {
-          name: member.fullName,
-          state: member.state,
-          chamber: member.chamber,
-          office: office,
-        });
-      }
-      
-      const response = await fetch(`/api/fec/search-candidates?${params.toString()}`);
-      const data = await response.json();
-      
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[FEC Search] Results:`, data.results?.length || 0, "candidates found");
-      }
-      
-      if (data.results) {
-        setSearchResults(data.results);
-      }
-    } catch (error) {
-      console.error("Failed to search FEC candidates:", error);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-  
-  const handleCopyId = async (candidateId: string) => {
-    try {
-      await navigator.clipboard.writeText(candidateId);
-      setCopiedId(candidateId);
-      setTimeout(() => setCopiedId(null), 2000);
-    } catch (error) {
-      console.error("Failed to copy candidate ID:", error);
-    }
-  };
-  
-  return (
-    <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-900/20">
-      <h3 className="mb-2 text-sm font-semibold text-blue-900 dark:text-blue-200">
-        Link FEC Candidate ID
-      </h3>
-      <p className="mb-3 text-xs text-blue-700 dark:text-blue-300">
-        No FEC ID found from automatic sources. Use search below to find and add a manual override.
-      </p>
-      
-      {/* Search UI */}
-      <div className="mb-3 space-y-2">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={member.fullName}
-            readOnly
-            className="flex-1 rounded border border-blue-200 bg-white px-2 py-1 text-xs text-zinc-900 dark:border-blue-700 dark:bg-zinc-900 dark:text-zinc-100"
-          />
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={handleSearch}
-            disabled={isSearching}
-          >
-            {isSearching ? "Searching..." : "Search"}
-          </Button>
-        </div>
-        <p className="text-xs text-blue-600 dark:text-blue-400">
-          Searching: {member.fullName} ({member.state}, {member.chamber})
-        </p>
-      </div>
-      
-      {/* Search Results */}
-      {searchResults.length > 0 && (
-        <div className="mb-2 space-y-2">
-          <p className="text-xs font-medium text-blue-800 dark:text-blue-300">
-            Results ({searchResults.length}):
-          </p>
-          <div className="max-h-48 space-y-1 overflow-y-auto">
-            {searchResults.map((result) => (
-              <div
-                key={result.candidate_id}
-                className="flex items-center justify-between rounded border border-blue-200 bg-white px-2 py-1.5 text-xs dark:border-blue-700 dark:bg-zinc-900"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-zinc-900 dark:text-zinc-100">
-                    {result.name}
-                  </p>
-                  <p className="text-zinc-600 dark:text-zinc-400">
-                    {result.candidate_id} • {result.office || "N/A"} • {result.state || "N/A"}
-                    {result.party && ` • ${result.party}`}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopyId(result.candidate_id)}
-                  className="ml-2 flex-shrink-0 text-xs"
-                >
-                  {copiedId === result.candidate_id ? "Copied!" : "Copy ID"}
-                </Button>
+          {/* ── LEGISLATION ──────────────────────────────────────────────── */}
+          <section id="legislation" className="scroll-mt-20">
+            <SectionLabel label="Legislative Activity" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">Bills & Cosponsorship</h2>
+            <p className="text-sm text-gray-500 mb-5">
+              Legislation sponsored and cosponsored in the 119th Congress
+            </p>
+
+            {(sponsoredBills?.length || cosponsoredBills?.length) ? (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {sponsoredBills && sponsoredBills.length > 0 && (
+                  <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+                      Sponsored Bills ({sponsoredBills.length})
+                    </p>
+                    <div className="space-y-3">
+                      {sponsoredBills.map((bill, i) => (
+                        <div key={i} className="border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                          <Link
+                            href={`/bill/${bill.id}`}
+                            className="text-sm font-medium text-[#041534] hover:text-[#1B2A4A] hover:underline leading-snug block"
+                          >
+                            {bill.title}
+                          </Link>
+                          <p className="mt-0.5 text-xs text-gray-400">
+                            {bill.type} {bill.number}
+                            {bill.latestAction && ` · ${bill.latestAction}`}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {cosponsoredBills && cosponsoredBills.length > 0 && (
+                  <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-4">
+                      Cosponsored Bills ({cosponsoredBills.length})
+                    </p>
+                    <div className="space-y-3">
+                      {cosponsoredBills.map((bill, i) => (
+                        <div key={i} className="border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                          <Link
+                            href={`/bill/${bill.id}`}
+                            className="text-sm font-medium text-[#041534] hover:text-[#1B2A4A] hover:underline leading-snug block"
+                          >
+                            {bill.title}
+                          </Link>
+                          <p className="mt-0.5 text-xs text-gray-400">
+                            {bill.type} {bill.number}
+                            {bill.latestAction && ` · ${bill.latestAction}`}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ))}
+            ) : (
+              <EmptyCard text="No sponsored or cosponsored bills found in the 119th Congress." />
+            )}
+          </section>
+
+          {/* ── STATEMENTS ────────────────────────────────────────────────── */}
+          <section id="statements" className="scroll-mt-20">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <SectionLabel label="Public Record" />
+                <h2 className="text-2xl font-bold text-gray-900">Statements & Press Releases</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Official statements from the member&apos;s office</p>
+              </div>
+              {displayStatements.length > 0 && (
+                <button
+                  onClick={() =>
+                    openReceipts({
+                      heading:    "Statement Sources",
+                      subheading: displayName,
+                      sources:    displayStatements.flatMap((s) => s.sources),
+                    })
+                  }
+                  className="shrink-0 text-xs font-medium text-gray-400 hover:text-gray-700 underline underline-offset-2 mt-1"
+                >
+                  Sources
+                </button>
+              )}
+            </div>
+
+            {statementsLoading && <LoadingCard text="Loading statements…" />}
+
+            {!statementsLoading && displayStatements.length > 0 && (
+              <div className="rounded-xl border border-gray-100 bg-white shadow-sm divide-y divide-gray-50">
+                {displayStatements.slice(0, 6).map((stmt, i) => (
+                  <div key={i} className="px-5 py-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 leading-snug">{stmt.title}</p>
+                        {stmt.text && (
+                          <p className="mt-1 text-xs leading-relaxed text-gray-500 line-clamp-2">{stmt.text}</p>
+                        )}
+                      </div>
+                      <div className="shrink-0 text-right">
+                        {stmt.topic && (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 block mb-1">
+                            {stmt.topic}
+                          </span>
+                        )}
+                        <p className="text-xs text-gray-400">{stmt.date}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!statementsLoading && displayStatements.length === 0 && (
+              <EmptyCard text="No public statements found for this member." />
+            )}
+          </section>
+
+          {/* Footer */}
+          <div className="border-t border-gray-100 pt-6 pb-10">
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Data from{" "}
+              <a href="https://congress.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Congress.gov</a>
+              {" "}(119th Congress) and the{" "}
+              <a href="https://www.fec.gov" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">Federal Election Commission</a>.
+              AI insights by Claude (Anthropic). All data is public record.
+            </p>
           </div>
         </div>
-      )}
-      
-      {/* Instructions */}
-      <p className="text-xs text-blue-600 dark:text-blue-400">
-        No FEC ID found from automatic sources. Use search above to find and add a manual override in <code className="rounded bg-blue-100 px-1 py-0.5 text-xs dark:bg-blue-900/50">data/fec-mapping.ts</code>
-      </p>
+      </div>
     </div>
   );
 }
 
+// ─── Small reusable components ───────────────────────────────────────────────
+
+function SectionLabel({ label, accent = false }: { label: string; accent?: boolean }) {
+  return (
+    <p
+      className="text-[10px] font-bold uppercase tracking-widest mb-1"
+      style={{ color: accent ? "#A63744" : "#75777F" }}
+    >
+      {label}
+    </p>
+  );
+}
+
+function VoteBadge({ position }: { position: string }) {
+  if (position === "Yes") {
+    return (
+      <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700">Yes</span>
+    );
+  }
+  if (position === "No") {
+    return (
+      <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700">No</span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-500">
+      {position || "Abstain"}
+    </span>
+  );
+}
+
+function LoadingCard({ text }: { text: string }) {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
+      <div className="flex items-center gap-3 text-gray-400">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-gray-400" />
+        <span className="text-sm">{text}</span>
+      </div>
+    </div>
+  );
+}
+
+function AlertCard({ text, variant = "warn" }: { text: string; variant?: "warn" | "info" }) {
+  const cls =
+    variant === "info"
+      ? "border-blue-100 bg-blue-50 text-blue-700"
+      : "border-amber-100 bg-amber-50 text-amber-700";
+  return <div className={`rounded-xl border p-4 text-sm ${cls}`}>{text}</div>;
+}
+
+function EmptyCard({ text }: { text: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center">
+      <p className="text-sm text-gray-400">{text}</p>
+    </div>
+  );
+}
