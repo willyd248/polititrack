@@ -47,6 +47,7 @@ export function MemberPhoto({
         sizes={`${size}px`}
         className="object-cover"
         onError={() => setImgError(true)}
+        unoptimized
       />
     </div>
   );

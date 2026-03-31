@@ -56,6 +56,7 @@ export default function HomeClient({
   const [newsletterStatus, setNewsletterStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
+  const [chamberFilter, setChamberFilter] = useState<"All" | "House" | "Senate">("All");
 
   const { addPolitician, removePolitician, isSelected } = useCompare();
   const { savedPoliticians, savedBills, isPoliticianSaved } = useSaved();
@@ -317,8 +318,24 @@ export default function HomeClient({
 
           {displayMembers.length > 0 ? (
             <>
+            {/* Chamber toggle */}
+            <div className="flex gap-1.5 mb-5">
+              {(["All", "House", "Senate"] as const).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setChamberFilter(c)}
+                  className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition-colors ${
+                    chamberFilter === c
+                      ? "bg-[#041534] text-white"
+                      : "border border-outline-variant bg-white text-on-surface-variant hover:border-outline hover:text-on-surface"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {displayMembers.slice(0, 12).map((m) => {
+              {(chamberFilter === "All" ? displayMembers : displayMembers.filter((m) => m.chamber === chamberFilter)).slice(0, 12).map((m) => {
                 const pol    = memberToPolitician(m);
                 const party  = m.party ?? "";
                 const compared = isSelected(pol.id);
