@@ -20,18 +20,12 @@ export default async function BillPage({
   let useMockData = false;
   
   try {
-    console.log(`[BillPage] Fetching bill: ${id}`);
     bill = await fetchBillById(id);
-    console.log(`[BillPage] fetchBillById result:`, bill ? `found: ${bill.name}` : "null");
     if (!bill) {
-      // Fallback to mock data
       bill = bills.find((b) => b.id === id) || null;
       if (bill) useMockData = true;
-      console.log(`[BillPage] Mock data fallback:`, bill ? `found: ${bill.name}` : "not found");
     }
-  } catch (error) {
-    // Fallback to mock data
-    console.error(`[BillPage] Error fetching bill ${id}:`, error);
+  } catch {
     bill = bills.find((b) => b.id === id) || null;
     if (bill) useMockData = true;
   }

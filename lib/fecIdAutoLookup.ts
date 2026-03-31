@@ -71,9 +71,6 @@ export async function autoLookupFecCandidateId(
     
     // Ensure chamber is valid
     if (!chamber || (chamber !== "House" && chamber !== "Senate")) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(`[Auto FEC Lookup] Invalid or missing chamber for ${fullName}: ${chamber}`);
-      }
       return null;
     }
     
@@ -87,9 +84,6 @@ export async function autoLookupFecCandidateId(
     });
     
     if (results.length === 0) {
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[Auto FEC Lookup] No results found for ${fullName} (${stateCode}, ${chamber})`);
-      }
       return null;
     }
     
@@ -101,10 +95,6 @@ export async function autoLookupFecCandidateId(
         if (candidate.state?.toUpperCase() === stateCode.toUpperCase() &&
             candidate.office?.toUpperCase() === office.toUpperCase()) {
           
-          if (process.env.NODE_ENV === "development") {
-            console.log(`[Auto FEC Lookup] Found match: ${candidate.candidate_id} for ${fullName}`);
-          }
-          
           return candidate.candidate_id;
         }
       }
@@ -115,23 +105,11 @@ export async function autoLookupFecCandidateId(
     if (firstResult.state?.toUpperCase() === stateCode.toUpperCase() &&
         firstResult.office?.toUpperCase() === office.toUpperCase()) {
       
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[Auto FEC Lookup] Using first result: ${firstResult.candidate_id} for ${fullName} (name similarity: ${namesMatch(fullName, firstResult.name)})`);
-      }
-      
       return firstResult.candidate_id;
     }
     
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[Auto FEC Lookup] No good match found for ${fullName} (${stateCode}, ${chamber})`);
-    }
-    
     return null;
-  } catch (error) {
-    // Never throw - return null on any error
-    if (process.env.NODE_ENV === "development") {
-      console.warn(`[Auto FEC Lookup] Error searching for ${fullName}:`, error);
-    }
+  } catch {
     return null;
   }
 }

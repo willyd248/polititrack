@@ -96,8 +96,6 @@ export async function fetchMembers(congress?: number): Promise<Member[]> {
       return [];
     }
 
-    console.log(`[fetchMembers] Fetched ${allMembers.length} members for ${congressNumber}th Congress`);
-    
     // Map all members — skip expensive FEC/LIS lookups in bulk fetch
     // Individual profile pages will do full lookups
     const mappedMembers = await Promise.all(
@@ -143,21 +141,6 @@ export async function fetchMemberByBioguideId(
       return null;
     }
     
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[fetchMemberByBioguideId] Raw Congress.gov response for ${bioguideId}:`, {
-        bioguideId: response.member.bioguideId,
-        state: response.member.state,
-        chamber: response.member.chamber,
-        district: response.member.district,
-        name: response.member.name,
-        firstName: response.member.firstName,
-        lastName: response.member.lastName,
-        party: response.member.party,
-        partyHistory: (response.member as any).partyHistory,
-        allKeys: Object.keys(response.member),
-      });
-    }
-    
     // Congress.gov API v3 may not return chamber directly
     // Infer chamber from district: House members have districts, Senators don't
     if (!response.member.chamber) {
@@ -171,9 +154,6 @@ export async function fetchMemberByBioguideId(
         response.member.chamber = "Senate";
       }
       
-      if (process.env.NODE_ENV === "development") {
-        console.log(`[fetchMemberByBioguideId] Inferred chamber for ${bioguideId}:`, response.member.chamber, "based on district:", response.member.district);
-      }
     }
     
     return await mapCongressMemberToMember(response.member, options);

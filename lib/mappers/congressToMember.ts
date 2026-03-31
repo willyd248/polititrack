@@ -122,17 +122,6 @@ function extractNameFields(congressMember: CongressMember): {
   lastName: string;
   fullName: string;
 } {
-  // Development-only: Log name fields to help debug API structure
-  if (process.env.NODE_ENV === "development" && !congressMember.firstName && !congressMember.lastName) {
-    console.log(`[Congress Member Name Debug] bioguideId: ${congressMember.bioguideId}`, {
-      firstName: congressMember.firstName,
-      lastName: congressMember.lastName,
-      name: congressMember.name,
-      directOrderName: congressMember.directOrderName,
-      invertedOrderName: congressMember.invertedOrderName,
-    });
-  }
-  
   // Priority 1: Direct firstName/lastName fields
   if (congressMember.firstName && congressMember.lastName) {
     const firstName = congressMember.firstName.trim();
@@ -324,23 +313,6 @@ export async function mapCongressMemberToMember(
     } else if (party.length === 1) {
       // If it's already a single letter, uppercase it
       party = party.toUpperCase();
-    }
-  }
-  
-  // Enhanced logging to debug party extraction (only log first few to avoid spam)
-  if (process.env.NODE_ENV === "development" && !party) {
-    // Only log detailed info for first 3 members to avoid console spam
-    const shouldLog = Math.random() < 0.1; // Log ~10% of members
-    if (shouldLog) {
-      console.log(`[mapCongressMemberToMember] No party found for ${congressMember.bioguideId}:`, {
-        rawParty: congressMember.party,
-        partyHistory: congressMember.partyHistory,
-        partyHistoryLength: congressMember.partyHistory?.length || 0,
-        allMemberKeys: Object.keys(congressMember),
-        // Check for any field that might contain party info
-        memberString: JSON.stringify(congressMember).toLowerCase().includes("democrat") || 
-                     JSON.stringify(congressMember).toLowerCase().includes("republican") ? "Found party keywords" : "No party keywords",
-      });
     }
   }
   

@@ -204,7 +204,7 @@ async function tryFetchRss(urls: string[]): Promise<RssItem[] | null> {
       // Fix Atom-style links if needed
       items = fixAtomLinks(text, items);
 
-      console.log(`[press] Fetched ${items.length} RSS items from ${url}`);
+      // Successfully fetched RSS items
       return items;
     } catch {
       // Silently continue to next URL

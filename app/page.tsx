@@ -28,9 +28,8 @@ export default async function Home() {
       bills = realBills;
       useMockData = false;
     }
-  } catch (error) {
+  } catch {
     // Silently fall back to mock data
-    console.warn("Failed to fetch real bills, using mock data:", error);
   }
 
   // Try to fetch real members, fallback to mock politicians if API is unavailable
@@ -58,12 +57,11 @@ export default async function Home() {
     } else if (realMembers) {
       // Got some data but not enough - mark as unavailable
       showDataUnavailableIndicator = true;
-      console.warn(`Only received ${realMembers.length} members, falling back to mock data`);
+      // Insufficient members, falling back to mock data
     }
-  } catch (error) {
+  } catch {
     // Fetch failed - mark as unavailable
     showDataUnavailableIndicator = true;
-    console.warn("Failed to fetch real members, using mock data:", error);
   }
 
   return (

@@ -54,8 +54,7 @@ export default function CommandPalette() {
         } else {
           setRealMembers([]);
         }
-      } catch (error) {
-        console.warn("Failed to search real members:", error);
+      } catch {
         setRealMembers([]);
       } finally {
         setSearching(false);
